@@ -1,12 +1,15 @@
 "use client"
 
+export const dynamic = 'force-dynamic'
+
 import { useState } from "react"
 import { SiteHeader } from "@/components/site-header"
 import { ArrowLeft, Ticket, CreditCard, ShieldCheck, ArrowRight, Briefcase, Zap, Info, Smartphone, Plus, Minus } from "lucide-react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { Suspense } from "react"
 
-export default function CheckoutPage() {
+const CheckoutContent = () => {
     const searchParams = useSearchParams()
     const router = useRouter()
 
@@ -236,5 +239,13 @@ export default function CheckoutPage() {
 
             </div>
         </div>
+    )
+}
+
+export default function CheckoutPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-slate-50 flex items-center justify-center">Chargement...</div>}>
+            <CheckoutContent />
+        </Suspense>
     )
 }

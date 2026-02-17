@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeft, SlidersHorizontal, CalendarDays, Briefcase, Armchair } from "lucide-react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
+import { Suspense } from "react"
 
 const mockTrips = [
     {
@@ -43,14 +44,8 @@ const mockTrips = [
     }
 ]
 
-export default function BookingPage() {
+function BookingContent() {
     const searchParams = useSearchParams()
-
-    // Default to 'one-way' and 'eco' if not provided (though we won't hook up the search form to URL yet for simplicity in this step, 
-    // we'll prepare the receiving end. For the demo, we can just hardcode state or use a context, but params is better).
-    // Actually, since BookingSearch doesn't push params yet, let's update BookingSearch to push params first? 
-    // Or just demo with local state? 
-    // Let's use local state simulation for now to keep it simple, or better yet, just show the features visually.
 
     // For this specific request, I will assume the search page *would* pass these.
     // Let's grab them safely.
@@ -107,5 +102,13 @@ export default function BookingPage() {
                 </div>
             </div>
         </div>
+    )
+}
+
+export default function BookingPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-slate-50 flex items-center justify-center">Chargement...</div>}>
+            <BookingContent />
+        </Suspense>
     )
 }

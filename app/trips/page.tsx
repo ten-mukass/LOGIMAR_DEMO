@@ -3,11 +3,15 @@
 import { SiteHeader } from "@/components/site-header"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+
+export const dynamic = 'force-dynamic'
+
 import { Ticket, QrCode, Download, Share2, MapPin, CalendarDays, Ship, Briefcase, ShieldCheck, Zap } from "lucide-react"
 import { useSearchParams } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { Suspense } from "react"
 
-export default function TripsPage() {
+const TripsContent = () => {
     const searchParams = useSearchParams()
     const showSuccess = searchParams.get('success') === 'true'
     const hasPriority = searchParams.get('priority') === 'true'
@@ -111,5 +115,13 @@ export default function TripsPage() {
 
             </div>
         </div>
+    )
+}
+
+export default function TripsPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-slate-50 flex items-center justify-center">Chargement...</div>}>
+            <TripsContent />
+        </Suspense>
     )
 }

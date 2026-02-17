@@ -1,5 +1,7 @@
 "use client"
 
+export const dynamic = 'force-dynamic'
+
 import { useState } from "react"
 import { SiteHeader } from "@/components/site-header"
 import { Button } from "@/components/ui/button"
@@ -7,12 +9,13 @@ import { ArrowLeft, Check, Armchair, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import { useSearchParams, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { Suspense } from "react"
 
 // Mock Boat Layout
 // Business: Rows 1-2 (2-2 layout)
 // Eco: Rows 3-10 (3-3 layout)
 
-export default function SeatSelectionPage() {
+const SeatSelectionContent = () => {
     const searchParams = useSearchParams()
     const router = useRouter()
 
@@ -193,5 +196,13 @@ export default function SeatSelectionPage() {
                 </Button>
             </div>
         </div>
+    )
+}
+
+export default function SeatSelectionPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-slate-50 flex items-center justify-center">Chargement...</div>}>
+            <SeatSelectionContent />
+        </Suspense>
     )
 }
