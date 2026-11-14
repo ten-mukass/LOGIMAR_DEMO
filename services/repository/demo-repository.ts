@@ -7,7 +7,11 @@ import { genererTraversees, jourDeDepart } from "@/domain/programme"
 import { appliquerGrille, placesNecessaires, placesRestantesTraversee, type Occupation } from "@/domain/tarifs"
 import type {
   ClasseReservation,
+  Client,
   CodeFamille,
+  CodeVerification,
+  Commande,
+  Envoi,
   InfoTrafic,
   Paiement,
   Reservation,
@@ -34,13 +38,32 @@ export function construireDonneesDemo(seed: Seed): DonneesDemo {
 
 /** Données du visiteur conservées dans le navigateur. */
 interface DonneesLocales {
-  version: 1
+  version: 2
   reservations: Reservation[]
+  commandes: Commande[]
   paiements: Paiement[]
+  envois: Envoi[]
+  clients: Client[]
+  codes: CodeVerification[]
+  compteursFactures: Record<string, number>
 }
 
-const CLE = "logimar-demo:v1:donnees"
-const VIDE: DonneesLocales = { version: 1, reservations: [], paiements: [] }
+const CLE = "logimar-demo:v2:donnees"
+const VIDE: DonneesLocales = {
+  version: 2,
+  reservations: [],
+  commandes: [],
+  paiements: [],
+  envois: [],
+  clients: [],
+  codes: [],
+  compteursFactures: {},
+}
+
+/** Remplace l'élément de même id, ou l'ajoute. */
+function remplacer<T extends { id: string }>(liste: T[], element: T): T[] {
+  return [...liste.filter((x) => x.id !== element.id), element]
+}
 
 export class DemoRepository implements Repository {
   private cache: DonneesDemo | null = null
@@ -56,8 +79,12 @@ export class DemoRepository implements Repository {
   }
 
   private locales(): DonneesLocales {
-    const d = lireJson<DonneesLocales>(this.stockage, CLE, VIDE)
-    return d.version === 1 && Array.isArray(d.reservations) && Array.isArray(d.paiements) ? d : VIDE
+    const d = lireJson<Partial<DonneesLocales>>(this.stockage, CLE, VIDE)
+    return d.version === 2 ? { ...VIDE, ...d } as DonneesLocales : VIDE
+  }
+
+  private modifier(changement: (d: DonneesLocales) => DonneesLocales): void {
+    this.sauver(changement(this.locales()))
   }
 
   private sauver(d: DonneesLocales): void {
@@ -93,6 +120,8 @@ export class DemoRepository implements Repository {
       operateurs: s.operateurs.filter((o) => s.config.moyensPaiementActifs[o.code]),
       textes: s.textes,
       paiementSimule: s.paiementSimule,
+      societe: s.societe,
+      rubriquesAide: s.rubriquesAide,
     }
   }
 
@@ -161,9 +190,26 @@ export class DemoRepository implements Repository {
   }
 
   async enregistrerReservation(reservation: Reservation): Promise<void> {
+    this.modifier((d) => ({ ...d, reservations: remplacer(d.reservations, reservation) }))
+  }
+
+  async listerReservationsLocales(): Promise<Reservation[]> {
+    return this.locales().reservations
+  }
+
+  async getCommande(id: string): Promise<Commande | null> {
+    return this.locales().commandes.find((c) => c.id === id) ?? null
+  }
+
+  async enregistrerCommande(commande: Commande): Promise<void> {
+    this.modifier((d) => ({ ...d, commandes: remplacer(d.commandes, commande) }))
+  }
+
+  async prochainNumeroFacture(annee: number): Promise<string> {
     const d = this.locales()
-    const autres = d.reservations.filter((r) => r.id !== reservation.id)
-    this.sauver({ ...d, reservations: [...autres, reservation] })
+    const suivant = (d.compteursFactures[annee] ?? 0) + 1
+    this.sauver({ ...d, compteursFactures: { ...d.compteursFactures, [annee]: suivant } })
+    return `${this.seed.societe.prefixeFacture}-${annee}-${String(suivant).padStart(6, "0")}`
   }
 
   async getPaiement(id: string): Promise<Paiement | null> {
@@ -174,9 +220,71 @@ export class DemoRepository implements Repository {
     return this.locales().paiements.find((p) => p.refTransaction === refTransaction) ?? null
   }
 
+  async listerPaiements(commandeId: string): Promise<Paiement[]> {
+    return this.locales().paiements.filter((p) => p.commandeId === commandeId)
+  }
+
   async enregistrerPaiement(paiement: Paiement): Promise<void> {
-    const d = this.locales()
-    const autres = d.paiements.filter((p) => p.id !== paiement.id)
-    this.sauver({ ...d, paiements: [...autres, paiement] })
+    this.modifier((d) => ({ ...d, paiements: remplacer(d.paiements, paiement) }))
+  }
+
+  async getEnvoi(id: string): Promise<Envoi | null> {
+    return this.locales().envois.find((e) => e.id === id) ?? null
+  }
+
+  async listerEnvois(filtre: { commandeId?: string; clientId?: string }): Promise<Envoi[]> {
+    return this.locales().envois.filter(
+      (e) =>
+        (filtre.commandeId === undefined || e.commandeId === filtre.commandeId) &&
+        (filtre.clientId === undefined || e.clientId === filtre.clientId),
+    )
+  }
+
+  async enregistrerEnvoi(envoi: Envoi): Promise<void> {
+    this.modifier((d) => ({ ...d, envois: remplacer(d.envois, envoi) }))
+  }
+
+  async getClient(id: string): Promise<Client | null> {
+    return this.locales().clients.find((c) => c.id === id) ?? null
+  }
+
+  async trouverClient(identifiant: string): Promise<Client | null> {
+    return this.locales().clients.find((c) => c.email === identifiant || c.telephone === identifiant) ?? null
+  }
+
+  async enregistrerClient(client: Client): Promise<void> {
+    this.modifier((d) => ({ ...d, clients: remplacer(d.clients, client) }))
+  }
+
+  async supprimerClient(id: string): Promise<void> {
+    this.modifier((d) => ({
+      ...d,
+      clients: d.clients.filter((c) => c.id !== id),
+      codes: d.codes.filter((c) => c.clientId !== id),
+    }))
+  }
+
+  async enregistrerCode(code: CodeVerification): Promise<void> {
+    this.modifier((d) => ({ ...d, codes: remplacer(d.codes, code) }))
+  }
+
+  async dernierCode(clientId: string, objet: CodeVerification["objet"]): Promise<CodeVerification | null> {
+    return this.locales().codes.filter((c) => c.clientId === clientId && c.objet === objet).at(-1) ?? null
+  }
+
+  async supprimerCodes(clientId: string): Promise<void> {
+    this.modifier((d) => ({ ...d, codes: d.codes.filter((c) => c.clientId !== clientId) }))
+  }
+
+  async exempleBillet(maintenant: Date): Promise<{ reference: string; contact: string } | null> {
+    const { ventes, traversees } = this.donnees()
+    const departs = new Map(traversees.map((t) => [t.id, Date.parse(t.departAt)]))
+    const exemple = ventes.find(
+      (r) =>
+        r.telephone !== null &&
+        Date.parse(r.creeLe) <= maintenant.getTime() &&
+        (departs.get(r.traverseeId) ?? 0) > maintenant.getTime() + 86_400_000,
+    )
+    return exemple && exemple.telephone ? { reference: exemple.reference, contact: exemple.telephone } : null
   }
 }

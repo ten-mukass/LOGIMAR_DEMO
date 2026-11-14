@@ -142,6 +142,8 @@ export interface LigneOption {
 
 export interface Reservation {
   id: string
+  /** Commande (paiement, facture) à laquelle appartient la réservation ; null pour les ventes d'agence. */
+  commandeId: string | null
   /** Référence du billet, attribuée à l'émission (vide avant). */
   reference: string
   traverseeId: string
@@ -167,7 +169,7 @@ export type StatutPaiement = "en-attente" | "reussi" | "refuse" | "rembourse"
 
 export interface Paiement {
   id: string
-  reservationId: string
+  commandeId: string
   moyen: "airtel" | "moov"
   /** Numéro Mobile Money débité (peut être celui d'un tiers). */
   numero: string
@@ -235,4 +237,79 @@ export interface OperateurMobile {
   code: "airtel" | "moov"
   nom: string
   logo: string
+}
+
+/**
+ * Commande : une ou deux réservations (aller, retour) payées en une fois, avec une facture.
+ * Ajout au modèle du cahier des charges (docs/PLAN_DEMO.md, décision 2).
+ */
+export type StatutCommande = "en-cours" | "payee" | "abandonnee" | "expiree"
+
+export interface Commande {
+  id: string
+  /** Aller, puis retour éventuel. */
+  reservationIds: string[]
+  telephone: string | null
+  email: string | null
+  statut: StatutCommande
+  total: number
+  /** Numéro séquentiel sans trou, attribué au paiement (ex. F-2026-000123). */
+  numeroFacture: string | null
+  factureEmiseLe: string | null
+  clientId: string | null
+  creeLe: string
+}
+
+export type CanalEnvoi = "email" | "sms" | "whatsapp"
+
+/** Journal des envois (cahier des charges §4.5). */
+export interface Envoi {
+  id: string
+  commandeId: string | null
+  clientId: string | null
+  canal: CanalEnvoi
+  destinataire: string
+  objet: string
+  texte: string
+  /** Documents joints (générés à la demande). */
+  pieces: { nom: string; type: "billet" | "facture" }[]
+  /** Démo : « apercu » (rien n'est envoyé). */
+  statut: "apercu" | "envoye" | "echec"
+  tentatives: number
+  erreur: string | null
+  creeLe: string
+}
+
+export interface PassagerEnregistre {
+  id: string
+  categorie: Categorie
+  nom: string
+  prenom: string
+  dateNaissance: string | null
+  typePiece: TypePiece | null
+  numeroPiece: string | null
+}
+
+export interface Client {
+  id: string
+  telephone: string | null
+  email: string | null
+  emailVerifieLe: string | null
+  motDePasseHash: string
+  sel: string
+  langue: "fr" | "en"
+  reservationIds: string[]
+  passagers: PassagerEnregistre[]
+  creeLe: string
+}
+
+export interface CodeVerification {
+  id: string
+  clientId: string
+  objet: "verification" | "reinitialisation"
+  canal: "email" | "sms"
+  destinataire: string
+  codeHash: string
+  expireAt: string
+  tentatives: number
 }

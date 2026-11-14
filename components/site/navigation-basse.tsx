@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { afficheNavigation, liensNavigation } from "./liens"
+import { afficheNavigation, liensNavigation, rubriqueActive } from "./liens"
 
 export function NavigationBasse() {
   const chemin = usePathname()
@@ -18,7 +18,7 @@ export function NavigationBasse() {
       >
         <ul className="grid h-[72px] grid-cols-4">
           {liensNavigation.map(({ href, libelle, icone: Icone }) => {
-            const actif = chemin === href
+            const actif = rubriqueActive(chemin) === href
             return (
               <li key={href}>
                 <Link

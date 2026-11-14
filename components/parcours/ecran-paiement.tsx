@@ -14,11 +14,11 @@ import { compositionDe } from "@/domain/occupation"
 import { jourDeDepart } from "@/domain/programme"
 import { versParametres } from "@/domain/recherche"
 import { formatJourCourt } from "@/domain/temps"
-import type { CodePort, LigneOption, Reservation, Traversee } from "@/domain/types"
+import type { CodePort, LigneOption, Traversee } from "@/domain/types"
 import { useDonnees } from "@/lib/use-donnees"
 import { useSecondesRestantes } from "@/lib/use-secondes-restantes"
 import { cn } from "@/lib/utils"
-import { repository, serviceReservation, type Referentiel } from "@/services"
+import { repository, serviceReservation, type CommandeDetaillee, type Referentiel } from "@/services"
 import { BarreBasse } from "./barre-basse"
 import { EnTeteParcours } from "./en-tete-parcours"
 
@@ -31,22 +31,25 @@ function formatCompteur(secondes: number): string {
 export function EcranPaiement({ id, referentiel }: { id: string; referentiel: Referentiel }) {
   const router = useRouter()
   const charger = useCallback(async () => {
-    const reservation = await serviceReservation.lireReservation(id)
-    const traversee = reservation ? await repository.getTraversee(reservation.traverseeId) : null
-    return { reservation, traversee }
+    const detail = await serviceReservation.lireCommande(id)
+    if (!detail) return null
+    const traversees: Traversee[] = []
+    for (const r of detail.reservations) {
+      const t = await repository.getTraversee(r.traverseeId)
+      if (t) traversees.push(t)
+    }
+    return traversees.length === detail.reservations.length ? { detail, traversees } : null
   }, [id])
   const { donnees } = useDonnees(charger)
-  const reservation = donnees?.reservation
+  const payee = donnees?.detail.commande.statut === "payee" ? donnees.detail.reservations[0]?.reference : null
 
   useEffect(() => {
-    if (reservation?.statut === "emise") router.replace(`/billet/${reservation.reference}`)
-  }, [reservation, router])
+    if (payee) router.replace(`/billet/${payee}`)
+  }, [payee, router])
 
-  if (!donnees) return <div className="mx-auto mt-6 h-96 max-w-3xl animate-pulse rounded-carte bg-white" />
-  if (!donnees.reservation || !donnees.traversee) {
-    return <Interruption message="Réservation introuvable sur cet appareil." href="/" />
-  }
-  return <Paiement reservation={donnees.reservation} traversee={donnees.traversee} referentiel={referentiel} />
+  if (donnees === undefined) return <div className="mx-auto mt-6 h-96 max-w-3xl animate-pulse rounded-carte bg-white" />
+  if (donnees === null) return <Interruption message="Réservation introuvable sur cet appareil." href="/" />
+  return <Paiement detail={donnees.detail} traversees={donnees.traversees} referentiel={referentiel} />
 }
 
 function Interruption({ message, href, libelle = "Nouvelle recherche" }: { message: string; href: string; libelle?: string }) {
@@ -63,14 +66,17 @@ function Interruption({ message, href, libelle = "Nouvelle recherche" }: { messa
 }
 
 function Paiement({
-  reservation,
-  traversee,
+  detail,
+  traversees,
   referentiel,
 }: {
-  reservation: Reservation
-  traversee: Traversee
+  detail: CommandeDetaillee
+  traversees: Traversee[]
   referentiel: Referentiel
 }) {
+  const { commande, reservations } = detail
+  const reservation = reservations[0]
+  const traversee = traversees[0]
   const { options: catalogue, operateurs, familles, lignes, ports, paiementSimule } = referentiel
   const router = useRouter()
   const params = useSearchParams()
@@ -106,45 +112,60 @@ function Paiement({
   const ligne = lignes.find((l) => l.id === traversee.ligneId)
   const code = (portId: string | undefined) => ports.find((p) => p.id === portId)?.code as CodePort
   const composition = compositionDe(reservation.passagers)
+  const retour = reservations[1]
+  const traverseeRetour = traversees[1]
   const criteres = {
     depart: code(ligne?.portDepartId),
     arrivee: code(ligne?.portArriveeId),
     date: jourDeDepart(traversee),
-    dateRetour: null,
+    dateRetour: traverseeRetour ? jourDeDepart(traverseeRetour) : null,
     passagers: composition,
   }
-  const retourPassagers = `/passagers?${versParametres(criteres)}&t=${encodeURIComponent(traversee.id)}&f=${reservation.familleCode}`
-  const nomFamille = familles.find((f) => f.code === reservation.familleCode)?.nom ?? reservation.familleCode
+  const retourPassagers =
+    `/passagers?${versParametres(criteres)}&t=${encodeURIComponent(traversee.id)}&f=${reservation.familleCode}` +
+    (retour && traverseeRetour ? `&tr=${encodeURIComponent(traverseeRetour.id)}&fr=${retour.familleCode}` : "")
+  const nomFamille = (code: string) => familles.find((f) => f.code === code)?.nom ?? code
+  const libelleTarifs = reservations.map((r) => nomFamille(r.familleCode)).join(" + ")
 
-  if (reservation.statut !== "bloquee" || secondes === 0) {
+  if (commande.statut !== "en-cours" || secondes === 0) {
     const message =
-      reservation.statut === "annulee"
+      commande.statut === "abandonnee"
         ? "Cette réservation a été abandonnée : les places ont été libérées."
         : "Le délai de paiement est dépassé : les places et le tarif ont été libérés. Relancez la recherche pour voir les prix actuels."
     return <Interruption message={message} href={`/resultats?${versParametres(criteres)}`} libelle="Relancer la recherche" />
   }
 
-  const proposees = optionsProposees(catalogue, reservation.familleCode)
+  // Une option n'est proposée que si elle l'est pour chaque trajet (ex. pas de garantie si l'un est en Flex).
+  const proposees = optionsProposees(catalogue, reservation.familleCode).filter((o) =>
+    reservations.every((r) => o.familles.includes(r.familleCode)),
+  )
   const optionBagage = proposees.find((o) => o.code === "BAGAGE")
   const optionGarantie = proposees.find((o) => o.code === "GARANTIE")
   const choix: LigneOption[] = [
     ...(optionBagage && bagages > 0 ? [{ code: "BAGAGE" as const, quantite: bagages, prixUnitaire: optionBagage.prix }] : []),
     ...(optionGarantie && garantie ? [{ code: "GARANTIE" as const, quantite: 1, prixUnitaire: optionGarantie.prix }] : []),
   ]
-  const lignesRecap = [...lignesPassagers(reservation.prixUnitaires, composition), ...lignesOptions(choix, catalogue)]
+  const multi = reservations.length > 1
+  const lignesRecap = reservations.flatMap((r, i) => {
+    const prefixe = multi ? (i === 0 ? "Aller · " : "Retour · ") : ""
+    return [...lignesPassagers(r.prixUnitaires, composition), ...lignesOptions(choix, catalogue)].map((l) => ({
+      ...l,
+      libelle: prefixe + l.libelle,
+    }))
+  })
   const total = totalLignes(lignesRecap)
   const numeroValide = estTelephoneValide(numero)
   const nomOperateur = operateurs.find((o) => o.code === operateur)?.nom ?? operateur
 
   async function abandonner() {
-    await serviceReservation.liberer(reservation.id)
+    await serviceReservation.liberer(commande.id)
     router.push(retourPassagers)
   }
 
   async function payer() {
     setTentative(true)
     if (!cgt || !numeroValide) return
-    const resultat = await serviceReservation.payer(reservation.id, {
+    const resultat = await serviceReservation.payer(commande.id, {
       operateur,
       numero,
       options: { BAGAGE: bagages, GARANTIE: garantie ? 1 : 0 },
@@ -159,7 +180,7 @@ function Paiement({
     <main>
       <EnTeteParcours
         titre="Options et paiement"
-        sousTitre={`${reservation.passagers.length} passager${reservation.passagers.length > 1 ? "s" : ""} · ${criteres.depart} → ${criteres.arrivee} · ${formatJourCourt(criteres.date)}`}
+        sousTitre={`${reservation.passagers.length} passager${reservation.passagers.length > 1 ? "s" : ""} · ${criteres.depart} ${multi ? "⇄" : "→"} ${criteres.arrivee} · ${formatJourCourt(criteres.date)}${criteres.dateRetour ? ` → ${formatJourCourt(criteres.dateRetour)}` : ""}`}
         retour={{ onClick: abandonner }}
         etape={2}
       />
@@ -171,7 +192,7 @@ function Paiement({
         >
           <Timer aria-hidden className="size-6 shrink-0" />
           <span>
-            Places et tarif {nomFamille} bloqués pendant{" "}
+            Places et tarif{multi ? "s" : ""} {libelleTarifs} bloqués pendant{" "}
             <strong className="font-titre tabular-nums">{secondes === null ? "…" : formatCompteur(secondes)}</strong>
           </span>
         </p>
@@ -192,7 +213,7 @@ function Paiement({
                 <div>
                   <p className="font-semibold">{optionBagage.libelle}</p>
                   <p className="text-sm text-gris">
-                    {optionBagage.detail} · {formatFCFA(optionBagage.prix)} l’unité
+                    {optionBagage.detail} · {formatFCFA(optionBagage.prix)} l’unité{multi ? " et par trajet" : ""}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -226,6 +247,7 @@ function Paiement({
                   <span className="block font-semibold">{optionGarantie.libelle}</span>
                   <span className="block text-sm text-gris">
                     {optionGarantie.detail} · {formatFCFA(optionGarantie.prix)}
+                    {multi ? " par trajet" : ""}
                   </span>
                 </span>
                 <input

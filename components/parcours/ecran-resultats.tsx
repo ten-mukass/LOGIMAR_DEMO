@@ -12,12 +12,13 @@ import { versParametres } from "@/domain/recherche"
 import {
   alertePlaces,
   conditionsFamille,
+  meilleureOffre,
   offreLaMoinsChere,
   offresTraversee,
   totalPassagers,
   type Offre,
 } from "@/domain/tarifs"
-import { ecartJours, formatJourLong } from "@/domain/temps"
+import { ecartJours, formatJourCourt, formatJourLong, heureLocale } from "@/domain/temps"
 import { formatFCFA, formatMontant } from "@/domain/format"
 import type { CodeFamille } from "@/domain/types"
 import { useCriteres } from "@/lib/use-criteres"
@@ -30,6 +31,7 @@ import { CarteTraversee } from "./carte-traversee"
 import { EnTeteParcours } from "./en-tete-parcours"
 
 const NOMS_JOURS_COURTS = ["Dim.", "Lun.", "Mar.", "Mer.", "Jeu.", "Ven.", "Sam."]
+const FAMILLES: CodeFamille[] = ["ECO", "STD", "FLEX"]
 
 /** Fenêtre (en jours) autour de la date choisie pour désigner le jour le moins cher. */
 const FENETRE_MOINS_CHER = 7
@@ -38,13 +40,23 @@ export function EcranResultats({ referentiel }: { referentiel: Referentiel }) {
   const { ports, lignes, config, navires, terminaux, familles, options } = referentiel
   const router = useRouter()
   const maintenant = useMaintenant()
-  const { criteres, erreurs } = useCriteres(ports, config.passagersMax)
-  const ligne = criteres ? trouverLigne(lignes, ports, criteres.depart, criteres.arrivee) : undefined
+  const { criteres, erreurs, traverseeId: allerId, famille: allerFamilleBrute } = useCriteres(ports, config.passagersMax)
+  const allerFamille = FAMILLES.find((f) => f === allerFamilleBrute) ?? null
+  // Aller-retour : on choisit l'aller, puis le retour (l'aller choisi est dans l'URL : « t », « f »).
+  const modeRetour = Boolean(criteres?.dateRetour && allerId && allerFamille)
+  const depart = criteres ? (modeRetour ? criteres.arrivee : criteres.depart) : undefined
+  const arrivee = criteres ? (modeRetour ? criteres.depart : criteres.arrivee) : undefined
+  const dateCourante = criteres ? (modeRetour ? (criteres.dateRetour as string) : criteres.date) : ""
+  const ligne = depart && arrivee ? trouverLigne(lignes, ports, depart, arrivee) : undefined
 
   const charger = useCallback(async () => {
     if (!ligne || !maintenant) return null
-    const traversees = (await repository.listerTraversees({ ligneId: ligne.id })).filter((t) =>
-      estOuverteALaVente(t, maintenant, config.ventesEnLigneJusqua),
+    const aller =
+      modeRetour && allerId ? ((await repository.listerInventaires([allerId], maintenant))[0] ?? null) : null
+    const traversees = (await repository.listerTraversees({ ligneId: ligne.id })).filter(
+      (t) =>
+        estOuverteALaVente(t, maintenant, config.ventesEnLigneJusqua) &&
+        (!aller || Date.parse(t.departAt) > Date.parse(aller.traversee.arriveeAt)),
     )
     const [inventaires, repartition] = await Promise.all([
       repository.listerInventaires(
@@ -53,8 +65,8 @@ export function EcranResultats({ referentiel }: { referentiel: Referentiel }) {
       ),
       repository.repartitionParFamille(maintenant),
     ])
-    return { inventaires, repartition }
-  }, [ligne, maintenant, config.ventesEnLigneJusqua])
+    return { inventaires, repartition, aller }
+  }, [ligne, maintenant, config.ventesEnLigneJusqua, modeRetour, allerId])
   const { donnees } = useDonnees(maintenant && ligne ? charger : null)
 
   const [familleChoisie, setFamilleChoisie] = useState<CodeFamille | null>(null)
@@ -78,7 +90,7 @@ export function EcranResultats({ referentiel }: { referentiel: Referentiel }) {
     })
   }, [donnees, criteres])
 
-  if (!criteres || !ligne) {
+  if (!criteres || !ligne || !depart || !arrivee) {
     return (
       <main className="mx-auto max-w-3xl space-y-4 px-5 py-8">
         <h1 className="text-[22px] font-bold text-marine">Recherche incomplète</h1>
@@ -95,10 +107,23 @@ export function EcranResultats({ referentiel }: { referentiel: Referentiel }) {
   }
 
   const nom = (code: string) => ports.find((p) => p.code === code)?.nom ?? code
-  const choisi = jours.find((j) => j.jour === criteres.date)
+  const choisi = jours.find((j) => j.jour === dateCourante)
   const voisins = jours.filter(
-    (j) => j.moinsChere && Math.abs(ecartJours(criteres.date, j.jour)) <= FENETRE_MOINS_CHER,
+    (j) => j.moinsChere && Math.abs(ecartJours(dateCourante, j.jour)) <= FENETRE_MOINS_CHER,
   )
+  const allerChoisi = donnees?.aller ?? null
+  const offreAller =
+    allerChoisi && allerFamille
+      ? meilleureOffre(
+          allerChoisi.classes,
+          allerFamille,
+          criteres.passagers,
+          allerChoisi.traversee.capaciteVendable,
+          allerChoisi.occupation,
+        )
+      : null
+  const urlAller = `/resultats?${versParametres(criteres)}`
+  const choixAller = `t=${encodeURIComponent(allerId ?? "")}&f=${allerFamille ?? ""}`
   const prixVoisins = voisins.map((j) => j.moinsChere?.prixUnitaires.adulte ?? Infinity)
   const prixMin = Math.min(...prixVoisins)
   const prixMax = Math.max(...prixVoisins)
@@ -119,24 +144,37 @@ export function EcranResultats({ referentiel }: { referentiel: Referentiel }) {
 
   const changerJour = (jour: string) => {
     setFamilleChoisie(null)
-    router.replace(`/resultats?${versParametres({ ...criteres, date: jour })}`, { scroll: false })
+    if (modeRetour) {
+      router.replace(`/resultats?${versParametres({ ...criteres, dateRetour: jour })}&${choixAller}`, { scroll: false })
+    } else {
+      const dateRetour = criteres.dateRetour && criteres.dateRetour < jour ? jour : criteres.dateRetour
+      router.replace(`/resultats?${versParametres({ ...criteres, date: jour, dateRetour })}`, { scroll: false })
+    }
   }
 
   const continuer = () => {
     if (!choisi || !offre) return
-    router.push(
-      `/passagers?${versParametres(criteres)}&t=${encodeURIComponent(choisi.inventaire.traversee.id)}&f=${offre.familleCode}`,
-    )
+    const choix = `t=${encodeURIComponent(choisi.inventaire.traversee.id)}&f=${offre.familleCode}`
+    if (modeRetour) {
+      router.push(`/passagers?${versParametres(criteres)}&${choixAller}&tr=${encodeURIComponent(choisi.inventaire.traversee.id)}&fr=${offre.familleCode}`)
+    } else if (criteres.dateRetour) {
+      router.push(`/resultats?${versParametres(criteres)}&${choix}`)
+    } else {
+      router.push(`/passagers?${versParametres(criteres)}&${choix}`)
+    }
   }
+  const totalAffiche = offre ? offre.total + (offreAller?.disponible ? offreAller.total : 0) : null
 
   return (
     <main>
       <div className="bg-marine text-white">
         <EnTeteParcours
           sombre
-          titre={`${nom(criteres.depart)} → ${nom(criteres.arrivee)}`}
-          sousTitre={`${resumeComposition(criteres.passagers)} · ${criteres.dateRetour ? "Aller-retour" : "Aller simple"}`}
-          retour={{ href: `/?${versParametres(criteres)}` }}
+          titre={`${nom(depart)} → ${nom(arrivee)}`}
+          sousTitre={`${resumeComposition(criteres.passagers)} · ${
+            criteres.dateRetour ? (modeRetour ? "Retour (2/2)" : "Aller (1/2)") : "Aller simple"
+          }`}
+          retour={{ href: modeRetour ? urlAller : `/?${versParametres(criteres)}` }}
           action={
             <Link href={`/?${versParametres(criteres)}`} className="px-1 text-[15px] font-semibold underline">
               Modifier
@@ -154,7 +192,7 @@ export function EcranResultats({ referentiel }: { referentiel: Referentiel }) {
                 voisins.includes(j) &&
                 j.moinsChere.prixUnitaires.adulte === prixMin,
             }))}
-            choisi={criteres.date}
+            choisi={dateCourante}
             onChoisir={changerJour}
             chargement={!donnees}
           />
@@ -166,12 +204,31 @@ export function EcranResultats({ referentiel }: { referentiel: Referentiel }) {
       </div>
 
       <div className="mx-auto max-w-3xl space-y-4 px-4 py-5 md:px-8">
-        {criteres.dateRetour && (
-          <p className="rounded-champ border border-soleil-bordure bg-soleil-pale px-3.5 py-3 text-sm text-marine">
-            Aller-retour : la réservation du retour arrive à l’étape 3 de la démonstration. Vous réservez ici l’aller.
-          </p>
+        {modeRetour && allerChoisi && (
+          <div className="flex items-center justify-between gap-3 rounded-carte border border-bordure bg-white p-3.5">
+            <div className="min-w-0">
+              <p className="text-[13px] font-semibold uppercase text-foret-texte">Aller choisi</p>
+              <p className="font-semibold">
+                {formatJourCourt(jourDeDepart(allerChoisi.traversee))} · {heureLocale(allerChoisi.traversee.departAt)} ·{" "}
+                {allerFamille && nomFamille(allerFamille)}
+                {offreAller?.disponible && ` · ${formatFCFA(offreAller.total, true)}`}
+              </p>
+              {offreAller && !offreAller.disponible && (
+                <p className="text-sm font-semibold text-alerte">Ce tarif n’est plus disponible pour l’aller.</p>
+              )}
+            </div>
+            <Link href={urlAller} className="shrink-0 text-[15px] font-semibold text-action underline">
+              Changer
+            </Link>
+          </div>
         )}
-        <h2 className="text-[19px] font-bold text-marine">{formatJourLong(criteres.date)}</h2>
+        {criteres.dateRetour && !modeRetour && (
+          <p className="text-sm font-semibold text-gris">Choisissez d’abord l’aller, puis le retour.</p>
+        )}
+        <h2 className="text-[19px] font-bold text-marine">
+          {criteres.dateRetour ? (modeRetour ? "Retour · " : "Aller · ") : ""}
+          {formatJourLong(dateCourante)}
+        </h2>
 
         {!donnees ? (
           <div className="h-56 animate-pulse rounded-carte bg-white" />
@@ -184,8 +241,8 @@ export function EcranResultats({ referentiel }: { referentiel: Referentiel }) {
             <CarteTraversee
               traversee={choisi.inventaire.traversee}
               navire={navires.find((n) => n.id === choisi.inventaire.traversee.navireId)}
-              depart={ports.find((p) => p.code === criteres.depart)}
-              arrivee={ports.find((p) => p.code === criteres.arrivee)}
+              depart={ports.find((p) => p.code === depart)}
+              arrivee={ports.find((p) => p.code === arrivee)}
               terminalDepart={terminaux.find((t) => t.id === choisi.inventaire.traversee.terminalDepartId)}
               placesRestantes={choisi.inventaire.placesRestantes}
             />
@@ -281,15 +338,20 @@ export function EcranResultats({ referentiel }: { referentiel: Referentiel }) {
       <BarreBasse>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm text-gris">
-            {offre ? `${nomFamille(offre.familleCode)} · ` : ""}
+            {modeRetour ? "Aller + retour · " : offre ? `${nomFamille(offre.familleCode)} · ` : ""}
             {nbPassagers} passager{nbPassagers > 1 ? "s" : ""}
           </p>
           <p className="font-titre text-[20px] font-bold tabular-nums text-marine">
-            {offre ? formatFCFA(offre.total) : "—"}
+            {totalAffiche !== null ? formatFCFA(totalAffiche) : "—"}
           </p>
         </div>
-        <Bouton taille="grand" className="min-w-40" disabled={!offre} onClick={continuer}>
-          Continuer
+        <Bouton
+          taille="grand"
+          className="min-w-40"
+          disabled={!offre || (modeRetour && !offreAller?.disponible)}
+          onClick={continuer}
+        >
+          {criteres.dateRetour && !modeRetour ? "Choisir le retour" : "Continuer"}
         </Bouton>
       </BarreBasse>
     </main>

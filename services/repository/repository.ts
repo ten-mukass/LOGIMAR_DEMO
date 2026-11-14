@@ -5,10 +5,16 @@
  */
 import type { ConfigCommerciale, ConfigPaiementSimule } from "@/domain/config"
 import type { Occupation } from "@/domain/tarifs"
+import type { RubriqueAide } from "@/data/seed/aide"
+import type { Societe } from "@/data/seed/societe"
 import type {
   Agence,
   ClasseReservation,
+  Client,
   CodeFamille,
+  CodeVerification,
+  Commande,
+  Envoi,
   FamilleTarifaire,
   InfoTrafic,
   Ligne,
@@ -39,6 +45,9 @@ export interface Referentiel {
   textes: { regleEnregistrement: string }
   /** Démo seulement : réglages du paiement simulé, affichés pour le présentateur (null en production). */
   paiementSimule: ConfigPaiementSimule | null
+  /** Émetteur des factures. */
+  societe: Societe
+  rubriquesAide: RubriqueAide[]
 }
 
 export interface FiltreTraversees {
@@ -73,8 +82,34 @@ export interface Repository {
   /** Crée ou remplace une réservation. */
   enregistrerReservation(reservation: Reservation): Promise<void>
 
+  /** Réservations faites ou payées sur cet appareil (démo) ; en production : celles du client connecté. */
+  listerReservationsLocales(): Promise<Reservation[]>
+
+  getCommande(id: string): Promise<Commande | null>
+  enregistrerCommande(commande: Commande): Promise<void>
+  /** Numéro de facture suivant, séquentiel et sans trou pour l'année. */
+  prochainNumeroFacture(annee: number): Promise<string>
+
   getPaiement(id: string): Promise<Paiement | null>
   trouverPaiementParTransaction(refTransaction: string): Promise<Paiement | null>
+  listerPaiements(commandeId: string): Promise<Paiement[]>
   /** Crée ou remplace un paiement. */
   enregistrerPaiement(paiement: Paiement): Promise<void>
+
+  getEnvoi(id: string): Promise<Envoi | null>
+  listerEnvois(filtre: { commandeId?: string; clientId?: string }): Promise<Envoi[]>
+  enregistrerEnvoi(envoi: Envoi): Promise<void>
+
+  getClient(id: string): Promise<Client | null>
+  /** Recherche par e-mail (minuscules) ou téléphone (format +241 …). */
+  trouverClient(identifiant: string): Promise<Client | null>
+  enregistrerClient(client: Client): Promise<void>
+  supprimerClient(id: string): Promise<void>
+
+  enregistrerCode(code: CodeVerification): Promise<void>
+  dernierCode(clientId: string, objet: CodeVerification["objet"]): Promise<CodeVerification | null>
+  supprimerCodes(clientId: string): Promise<void>
+
+  /** Démo seulement : un billet d'exemple (référence et contact) pour essayer « Mes billets ». */
+  exempleBillet?(maintenant: Date): Promise<{ reference: string; contact: string } | null>
 }

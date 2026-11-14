@@ -22,11 +22,11 @@ import { jourDeDepart } from "@/domain/programme"
 import { versParametres, type CriteresRecherche } from "@/domain/recherche"
 import { meilleureOffre } from "@/domain/tarifs"
 import { formatJourCourt, heureLocale } from "@/domain/temps"
-import type { CodeFamille, TypePiece } from "@/domain/types"
+import type { Client, CodeFamille, PassagerEnregistre, TypePiece } from "@/domain/types"
 import { useCriteres } from "@/lib/use-criteres"
 import { useDonnees } from "@/lib/use-donnees"
 import { useMaintenant } from "@/lib/use-maintenant"
-import { repository, serviceReservation, type Inventaire, type Referentiel } from "@/services"
+import { auth, repository, serviceReservation, type Inventaire, type Referentiel } from "@/services"
 import { lireJson, stockageNavigateur } from "@/services/stockage"
 import { BarreBasse } from "./barre-basse"
 import { EnTeteParcours } from "./en-tete-parcours"
@@ -42,30 +42,50 @@ const FAMILLES: CodeFamille[] = ["ECO", "STD", "FLEX"]
 export function EcranPassagers({ referentiel }: { referentiel: Referentiel }) {
   const { ports, config } = referentiel
   const maintenant = useMaintenant()
-  const { criteres, traverseeId, famille } = useCriteres(ports, config.passagersMax)
+  const { criteres, traverseeId, famille, traverseeRetourId, familleRetour } = useCriteres(ports, config.passagersMax)
   const familleCode = FAMILLES.find((f) => f === famille)
+  const familleRetourCode = FAMILLES.find((f) => f === familleRetour)
+  const retourDemande = Boolean(criteres?.dateRetour)
 
   const charger = useCallback(async () => {
     if (!traverseeId || !maintenant) return null
-    const [inventaire] = await repository.listerInventaires([traverseeId], maintenant)
-    return inventaire ?? null
-  }, [traverseeId, maintenant])
-  const { donnees: inventaire } = useDonnees(traverseeId && maintenant ? charger : null)
+    const ids = [traverseeId, ...(traverseeRetourId ? [traverseeRetourId] : [])]
+    const inventaires = await repository.listerInventaires(ids, maintenant)
+    const parId = (id: string) => inventaires.find((i) => i.traversee.id === id)
+    const aller = parId(traverseeId)
+    const retour = traverseeRetourId ? parId(traverseeRetourId) : undefined
+    if (!aller || (traverseeRetourId && !retour)) return null
+    const session = await auth.session()
+    return {
+      inventaires: [aller, ...(retour ? [retour] : [])],
+      client: session && !session.verificationRequise ? session.client : null,
+    }
+  }, [traverseeId, traverseeRetourId, maintenant])
+  const { donnees } = useDonnees(traverseeId && maintenant ? charger : null)
+  const inventaires = donnees === null ? null : donnees?.inventaires
 
-  if (!criteres || !traverseeId || !familleCode || inventaire === null) {
+  const incomplet =
+    !criteres || !familleCode || inventaires === null || (retourDemande && (!traverseeRetourId || !familleRetourCode))
+  if (incomplet) {
     return <ParcoursInterrompu message="Il manque des informations sur la traversée choisie." />
   }
-  if (inventaire === undefined) {
+  if (inventaires === undefined) {
     return <div className="mx-auto mt-6 h-96 max-w-3xl animate-pulse rounded-carte bg-white" />
   }
+  const familles = [familleCode, ...(familleRetourCode ? [familleRetourCode] : [])]
   return (
     <FormulairePassagers
       referentiel={referentiel}
       criteres={criteres}
-      inventaire={inventaire}
-      familleCode={familleCode}
+      segments={inventaires.map((inventaire, i) => ({ inventaire, familleCode: familles[i] }))}
+      client={donnees?.client ?? null}
     />
   )
+}
+
+interface SegmentChoisi {
+  inventaire: Inventaire
+  familleCode: CodeFamille
 }
 
 function ParcoursInterrompu({ message, retour = "/" }: { message: string; retour?: string }) {
@@ -81,11 +101,11 @@ function ParcoursInterrompu({ message, retour = "/" }: { message: string; retour
   )
 }
 
-function brouillonInitial(cle: string, criteres: CriteresRecherche): Brouillon {
+function brouillonInitial(cle: string, criteres: CriteresRecherche, client: Client | null): Brouillon {
   const categories = categoriesDe(criteres.passagers)
   const vide: Brouillon = {
-    telephone: "",
-    email: "",
+    telephone: client?.telephone ?? "",
+    email: client?.email ?? "",
     passagers: categories.map((categorie) => ({
       categorie,
       nom: "",
@@ -125,20 +145,21 @@ function sessionStockage() {
 function FormulairePassagers({
   referentiel,
   criteres,
-  inventaire,
-  familleCode,
+  segments,
+  client,
 }: {
   referentiel: Referentiel
   criteres: CriteresRecherche
-  inventaire: Inventaire
-  familleCode: CodeFamille
+  segments: SegmentChoisi[]
+  client: Client | null
 }) {
   const { config, familles } = referentiel
   const router = useRouter()
-  const traversee = inventaire.traversee
+  const traversee = segments[0].inventaire.traversee
   const jourVoyage = jourDeDepart(traversee)
-  const cle = `logimar-demo:brouillon:${traversee.id}:${criteres.passagers.adultes}-${criteres.passagers.enfants}-${criteres.passagers.bebes}`
-  const [brouillon, setBrouillon] = useState<Brouillon>(() => brouillonInitial(cle, criteres))
+  const joursVoyage = segments.map((sg) => jourDeDepart(sg.inventaire.traversee))
+  const cle = `logimar-demo:brouillon:${segments.map((sg) => sg.inventaire.traversee.id).join("+")}:${criteres.passagers.adultes}-${criteres.passagers.enfants}-${criteres.passagers.bebes}`
+  const [brouillon, setBrouillon] = useState<Brouillon>(() => brouillonInitial(cle, criteres, client))
   const [afficherErreurs, setAfficherErreurs] = useState(false)
   const [envoi, setEnvoi] = useState<{ enCours: boolean; erreur: string | null }>({ enCours: false, erreur: null })
 
@@ -146,15 +167,21 @@ function FormulairePassagers({
     sessionStockage().ecrire(cle, JSON.stringify(brouillon))
   }, [cle, brouillon])
 
-  const offre = meilleureOffre(
-    inventaire.classes,
-    familleCode,
-    criteres.passagers,
-    traversee.capaciteVendable,
-    inventaire.occupation,
+  const offres = segments.map((sg) =>
+    meilleureOffre(
+      sg.inventaire.classes,
+      sg.familleCode,
+      criteres.passagers,
+      sg.inventaire.traversee.capaciteVendable,
+      sg.inventaire.occupation,
+    ),
   )
-  const retourResultats = `/resultats?${versParametres(criteres)}`
-  if (!offre.disponible) {
+  const retourResultats =
+    segments.length > 1
+      ? `/resultats?${versParametres(criteres)}&t=${encodeURIComponent(traversee.id)}&f=${segments[0].familleCode}`
+      : `/resultats?${versParametres(criteres)}`
+  const offresDisponibles = offres.filter((o): o is Extract<typeof o, { disponible: true }> => o.disponible)
+  if (offresDisponibles.length !== offres.length) {
     return (
       <ParcoursInterrompu
         message="Ce tarif n’est plus disponible pour ce nombre de passagers. Choisissez un autre tarif ou une autre date."
@@ -164,13 +191,21 @@ function FormulairePassagers({
   }
 
   const erreursContact = validerContact(brouillon)
+  // Catégorie vérifiée à la date de chaque trajet (un enfant peut avoir 12 ans entre l'aller et le retour).
   const erreursPassagers: ErreursPassager[] = brouillon.passagers.map((p) =>
-    validerPassager(p, jourVoyage, config.bornesAge),
+    joursVoyage.map((j) => validerPassager(p, j, config.bornesAge)).find((e) => Object.keys(e).length > 0) ?? {},
   )
   const valide =
     Object.keys(erreursContact).length === 0 && erreursPassagers.every((e) => Object.keys(e).length === 0)
-  const sousTitre = `${criteres.depart} → ${criteres.arrivee} · ${formatJourCourt(jourVoyage)} · ${heureLocale(traversee.departAt)}`
-  const nomFamille = familles.find((f) => f.code === familleCode)?.nom ?? familleCode
+  const sousTitre =
+    segments.length > 1
+      ? `${criteres.depart} ⇄ ${criteres.arrivee} · ${formatJourCourt(jourVoyage)} → ${formatJourCourt(joursVoyage[1])}`
+      : `${criteres.depart} → ${criteres.arrivee} · ${formatJourCourt(jourVoyage)} · ${heureLocale(traversee.departAt)}`
+  const total = offresDisponibles.reduce((s, o) => s + o.total, 0)
+  const libelleTarif =
+    segments.length > 1
+      ? "Aller + retour"
+      : (familles.find((f) => f.code === segments[0].familleCode)?.nom ?? segments[0].familleCode)
 
   const modifierPassager = (index: number, champ: keyof SaisiePassager, valeur: string) =>
     setBrouillon((b) => ({
@@ -187,19 +222,35 @@ function FormulairePassagers({
     }
     setEnvoi({ enCours: true, erreur: null })
     const resultat = await serviceReservation.bloquer({
-      traverseeId: traversee.id,
-      familleCode,
+      segments: segments.map((sg, i) => ({
+        traverseeId: sg.inventaire.traversee.id,
+        familleCode: sg.familleCode,
+        totalAffiche: offresDisponibles[i]?.total ?? 0,
+      })),
       passagers: brouillon.passagers,
       telephone: brouillon.telephone,
       email: brouillon.email,
-      totalAffiche: offre.disponible ? offre.total : 0,
+      clientId: client?.id ?? null,
     })
     if (!resultat.ok) {
       setEnvoi({ enCours: false, erreur: resultat.message })
       return
     }
-    const { reservation, prixModifie } = resultat.valeur
-    router.push(`/paiement/${reservation.id}${prixModifie ? "?prix=modifie" : ""}`)
+    if (client) {
+      // Les passagers saisis rejoignent le compte pour les prochaines réservations.
+      await auth.enregistrerPassagers(
+        resultat.valeur.reservations[0].passagers.map((p) => ({
+          categorie: p.categorie,
+          nom: p.nom,
+          prenom: p.prenom,
+          dateNaissance: p.dateNaissance,
+          typePiece: p.typePiece,
+          numeroPiece: p.numeroPiece,
+        })),
+      )
+    }
+    const { commande, prixModifie } = resultat.valeur
+    router.push(`/paiement/${commande.id}${prixModifie ? "?prix=modifie" : ""}`)
   }
 
   return (
@@ -257,6 +308,24 @@ function FormulairePassagers({
             jourVoyage={jourVoyage}
             bornes={config.bornesAge}
             onChange={(champ, valeur) => modifierPassager(i, champ, valeur)}
+            enregistres={client?.passagers.filter((e) => e.categorie === p.categorie) ?? []}
+            onChoisirEnregistre={(e) =>
+              setBrouillon((b) => ({
+                ...b,
+                passagers: b.passagers.map((x, n) =>
+                  n === i
+                    ? {
+                        ...x,
+                        nom: e.nom,
+                        prenom: e.prenom,
+                        dateNaissance: e.dateNaissance ?? "",
+                        typePiece: e.typePiece ?? "",
+                        numeroPiece: e.numeroPiece ?? "",
+                      }
+                    : x,
+                ),
+              }))
+            }
           />
         ))}
 
@@ -272,10 +341,8 @@ function FormulairePassagers({
 
       <BarreBasse>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm text-gris">
-            {nomFamille} · Total
-          </p>
-          <p className="font-titre text-[20px] font-bold tabular-nums text-marine">{formatFCFA(offre.total)}</p>
+          <p className="truncate text-sm text-gris">{libelleTarif} · Total</p>
+          <p className="font-titre text-[20px] font-bold tabular-nums text-marine">{formatFCFA(total)}</p>
         </div>
         <Bouton taille="grand" className="min-w-40" onClick={continuer} disabled={envoi.enCours}>
           {envoi.enCours ? "Blocage…" : "Continuer"}
@@ -293,6 +360,8 @@ function FichePassager({
   jourVoyage,
   bornes,
   onChange,
+  enregistres,
+  onChoisirEnregistre,
 }: {
   index: number
   saisie: SaisiePassager
@@ -301,6 +370,9 @@ function FichePassager({
   jourVoyage: string
   bornes: BornesAge
   onChange: (champ: keyof SaisiePassager, valeur: string) => void
+  /** Passagers enregistrés sur le compte, de la même catégorie. */
+  enregistres: PassagerEnregistre[]
+  onChoisirEnregistre: (passager: PassagerEnregistre) => void
 }) {
   const id = (champ: string) => `p${index + 1}-${champ}`
   const adulte = saisie.categorie === "adulte"
@@ -316,6 +388,26 @@ function FichePassager({
         </h2>
         {complete ? <Badge ton="succes">Complet</Badge> : <span className="text-sm text-gris">{trancheAge(saisie.categorie, bornes)}</span>}
       </div>
+      {enregistres.length > 0 && (
+        <Champ id={id("enregistre")} libelle="Passager enregistré" className="mt-3">
+          <select
+            id={id("enregistre")}
+            value=""
+            onChange={(e) => {
+              const choisi = enregistres.find((x) => x.id === e.target.value)
+              if (choisi) onChoisirEnregistre(choisi)
+            }}
+            className={classesChamp}
+          >
+            <option value="">Choisir pour pré-remplir…</option>
+            {enregistres.map((x) => (
+              <option key={x.id} value={x.id}>
+                {x.nom} {x.prenom}
+              </option>
+            ))}
+          </select>
+        </Champ>
+      )}
       <div className="mt-3 grid grid-cols-2 gap-3">
         <Champ id={id("nom")} libelle="Nom" erreur={erreurs.nom}>
           <input
