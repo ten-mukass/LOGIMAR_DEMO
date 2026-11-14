@@ -16,8 +16,8 @@
 | 0 | Remise au vert du déploiement | Fusionnée (PR #1) |
 | 1 | Fondations, Accueil, Horaires | Fusionnée (PR #2), en production |
 | 2 | Parcours aller simple jusqu'au billet | Fusionnée (PR #3), en production |
-| 3 | Aller-retour, PDF, e-mails, Mes billets, compte, Aide | PR #4 ouverte, Preview verte, en attente de relecture et de fusion |
-| 4 | Back-office | Commit `9a225a3` sur `demo-v1`, en local ; à pousser et à ouvrir en PR dès la fusion de la PR #4 |
+| 3 | Aller-retour, PDF, e-mails, Mes billets, compte, Aide | Fusionnée (PR #4, `ab4d1fd`), en production |
+| 4 | Back-office | PR #5 ouverte, en attente de relecture et de fusion |
 | 5 | Scan (facultatif) | À faire |
 | 6 | Recette | À faire |
 
@@ -75,7 +75,7 @@
 
 ## Étapes suivantes (rappel de `docs/PLAN_DEMO.md`)
 
-- **4 — Back-office** : fait (commit local `9a225a3`). Reste à pousser `demo-v1` et à ouvrir la PR une fois la PR #4 fusionnée.
+- **4 — Back-office** : PR #5 ouverte. Ne pas pousser l'étape 5 sur `demo-v1` avant sa fusion.
 - **5 — Scan** (facultatif) : lecture du QR par la caméra, contrôle de la signature (`verifierQrBillet`), « déjà scanné ».
 - **6 — Recette** : tablette et ordinateur, accessibilité, console, scénario de présentation dans le README.
 
