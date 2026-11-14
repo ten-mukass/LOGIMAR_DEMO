@@ -42,7 +42,7 @@ const SeatSelectionContent = () => {
     const renderSeat = (row: number, col: string, type: 'business' | 'eco') => {
         const seatId = `${row}${col}`
         const isSelected = selectedSeats.includes(seatId)
-        const isOccupied = Math.random() < 0.3 // Mock occupancy
+        const isOccupied = (row * 7 + col.charCodeAt(0)) % 10 < 3 // Occupation fictive déterministe (page supprimée à l’étape 1)
 
         return (
             <button

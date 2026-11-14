@@ -140,7 +140,7 @@ const CheckoutContent = () => {
                                 <span className="font-bold text-slate-900">Assurance Voyage</span>
                                 <span className="text-sm font-bold text-slate-900">+{PRICE_INSURANCE.toLocaleString('fr-FR')} FCFA</span>
                             </div>
-                            <p className="text-sm text-slate-500">Remboursement à 100% en cas d'annulation ou de modification jusqu'à 2h avant le départ.</p>
+                            <p className="text-sm text-slate-500">Remboursement à 100% en cas d’annulation ou de modification jusqu’à 2h avant le départ.</p>
                         </div>
                     </label>
 
