@@ -138,3 +138,10 @@ export function anneeMois(jour: string): { annee: number; mois: number } {
   const d = versDateUTC(jour)
   return { annee: d.getUTCFullYear(), mois: d.getUTCMonth() + 1 }
 }
+
+const formatMoisCourtIntl = new Intl.DateTimeFormat("fr-FR", { month: "short", timeZone: "UTC" })
+
+/** « nov. », « déc. », « janv. » */
+export function formatMoisCourt(jour: string): string {
+  return formatMoisCourtIntl.format(versDateUTC(jour))
+}

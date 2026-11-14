@@ -8,6 +8,7 @@ import {
   formatJourCourt,
   formatJourLong,
   formatMoisAnnee,
+  formatMoisCourt,
   heureLocale,
   instant,
   jourLocal,
@@ -63,5 +64,6 @@ describe("libellés de dates", () => {
     expect(formatJourLong("2026-11-17")).toBe("Mardi 17 novembre")
     expect(formatJourLong("2027-01-03", true)).toBe("Dimanche 3 janvier 2027")
     expect(formatMoisAnnee(2026, 11)).toBe("Novembre 2026")
+    expect(formatMoisCourt("2026-11-17")).toBe("nov.")
   })
 })

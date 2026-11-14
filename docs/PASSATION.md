@@ -1,6 +1,6 @@
 # Passation — démonstration LOGIMAR 241
 
-État au 14 novembre 2026, à reprendre dans une nouvelle conversation.
+État au 14 novembre 2026 (fin de l'étape 3).
 
 ## Où sont les choses
 
@@ -16,31 +16,23 @@
 | 0 | Remise au vert du déploiement | Fusionnée (PR #1) |
 | 1 | Fondations, Accueil, Horaires | Fusionnée (PR #2), en production |
 | 2 | Parcours aller simple jusqu'au billet | PR #3 ouverte, Preview verte, en attente de relecture |
-| 3 | Aller-retour, PDF, e-mails, Mes billets, compte, Aide | **En cours** : commit local `4987b93`, non poussé |
+| 3 | Aller-retour, PDF, e-mails, Mes billets, compte, Aide | Terminée en local, à pousser après la fusion de la PR #3 |
 | 4 | Back-office | À faire |
 | 5 | Scan (facultatif) | À faire |
 | 6 | Recette | À faire |
 
-### Étape 3 : déjà fait (commit local `4987b93`)
+### Étape 3 : contenu
 
-- Modèle `Commande` (aller simple ou aller-retour, un paiement, une facture numérotée sans trou `F-2026-000001`), `Envoi`, `Client`, `CodeVerification` dans `domain/types.ts`.
-- `ServiceReservation` réécrit autour de la commande (`bloquer` avec `segments`, `lireCommande`, `liberer`, `payer`, émission + e-mail de confirmation).
-- Résultats en deux temps pour l'aller-retour (paramètres d'URL `t`/`f` = aller, `tr`/`fr` = retour) ; Passagers et Paiement adaptés.
-- PDF billet et facture (`services/documents/pdf.ts`, pdf-lib, chargé à la demande) ; assemblage des données dans `services/documents/documents.ts`.
-- `NotificationService` + `PreviewNotificationService` (rien n'est envoyé) + page `/apercu-email/[id]`.
-- `AuthService` + `LocalAuthService` (compte après paiement, code e-mail, connexion, mot de passe oublié, passagers enregistrés, suppression).
-- `ServiceBillets` (recherche par référence + contact, billets consultables sur l'appareil) ; l'écran Billet vérifie l'accès.
-- Écran Billet refait : aller/retour, Billet PDF, Facture PDF, aperçu de l'e-mail, création du compte (`components/parcours/carte-compte.tsx`), partage WhatsApp.
-- 104 tests ; lint et build OK. **Pas encore vérifié dans le navigateur.**
-
-### Étape 3 : reste à faire
-
-1. Écran **Mes billets** (`app/mes-billets/page.tsx`, aujourd'hui page d'attente) d'après `docs/maquettes/png/07-mes-billets.png` : formulaire référence + téléphone ou e-mail (`billets.rechercher`, accepte `?ref=` en préremplissage), liste « Sur ce téléphone » (`billets.consultables()`), billet d'exemple pour la démo (`repository.exempleBillet`), lien vers le compte. Ne pas promettre la consultation hors ligne (PWA non faite).
-2. Écran **Mon compte** (`/compte`) : connexion, mot de passe oublié, vérification du code si en attente ; une fois connecté : billets à venir et passés, factures PDF, passagers enregistrés (suppression), déconnexion, suppression du compte. Lien depuis Mes billets et l'en-tête ordinateur.
-3. **Passagers** : remplacer la valeur provisoire `clientId` dans `components/parcours/ecran-passagers.tsx` par le client connecté (`auth.session()`), pré-remplir le contact et proposer « Passager enregistré » sur chaque fiche (c'est aussi la case « Je suis ce passager » de la maquette).
-4. Page **Aide** (`/aide`) construite à partir de `data/seed/aide.ts` (ancres `pieces`, `bagages`, `enfants`, `accessibilite`, `cgt`, `confidentialite`…), avec les numéros des agences.
-5. Vérifier tout le parcours dans le navigateur à 390 px, en tablette et sur ordinateur (aller-retour, refus `0000`, PDF, aperçu e-mail, création de compte, Mes billets), console sans erreur.
-6. `npm run lint`, `npm test`, `npm run build`, puis commit. Pousser seulement quand la PR #3 est fusionnée ; ouvrir la PR de l'étape 3.
+- Modèle `Commande` (aller simple ou aller-retour, un paiement, une facture numérotée sans trou `F-2026-000001`), `Envoi`, `Client`, `CodeVerification`.
+- Résultats en deux temps pour l'aller-retour (URL : `t`/`f` = aller, `tr`/`fr` = retour) ; Passagers et Paiement adaptés.
+- Billet et facture en PDF (`services/documents/pdf.ts`, chargé à la demande), marqués « démonstration ».
+- `NotificationService` + `PreviewNotificationService` + page `/apercu-email/[id]`.
+- `AuthService` + `LocalAuthService` ; écran `/compte` (connexion, mot de passe oublié, code, billets, factures, passagers enregistrés, suppression) ; création du compte depuis le billet.
+- `ServiceBillets` ; écran `/mes-billets` (recherche référence + contact, billets de l'appareil, billet d'exemple pour la démo) ; un billet ne s'affiche que s'il est consultable sur l'appareil.
+- Passagers : contact et fiches pré-remplis depuis le compte connecté ; les passagers saisis rejoignent le compte.
+- Page `/aide` construite depuis `data/seed/aide.ts`, numéros des agences.
+- Vérifié dans le navigateur (390 px, tablette, ordinateur) : aller-retour complet, PDF générés, aperçu des e-mails, création et vérification du compte, Mes billets, Aide ; console sans erreur. 104 tests, lint et build OK.
+- Non fait : billet consultable hors ligne (PWA).
 
 ## Méthode de travail (validée)
 
