@@ -3,12 +3,13 @@
  * Démo : DemoRepository (données d'exemple + navigateur). Production : implémentation serveur (PostgreSQL).
  * Toutes les méthodes sont asynchrones pour que le passage au serveur ne change pas les écrans.
  */
-import type { ConfigCommerciale, ConfigPaiementSimule } from "@/domain/config"
+import type { ConfigCommerciale, ConfigPaiementSimule, ParametresGestion } from "@/domain/config"
 import type { Occupation } from "@/domain/tarifs"
 import type { RubriqueAide } from "@/data/seed/aide"
 import type { Societe } from "@/data/seed/societe"
 import type {
   Agence,
+  ChangementPalier,
   ClasseReservation,
   Client,
   CodeFamille,
@@ -75,6 +76,17 @@ export interface Repository {
   listerInventaires(traverseeIds: string[], maintenant: Date): Promise<Inventaire[]>
   /** Passagers vendus par famille tarifaire jusqu'à cet instant (« Le plus choisi », tableaux de bord). */
   repartitionParFamille(maintenant: Date): Promise<Record<CodeFamille, number>>
+
+  /**
+   * Back-office : réservations qui comptent à cet instant, toutes origines, cohérentes avec l'occupation
+   * de listerInventaires (démo : celles du visiteur et les ventes d'exemple retenues ; production : requête en base).
+   */
+  listerReservations(maintenant: Date, filtre?: { traverseeIds?: string[] }): Promise<Reservation[]>
+  /** Ouvertures et fermetures manuelles de paliers, de la plus ancienne à la plus récente. */
+  listerChangementsPaliers(traverseeId?: string): Promise<ChangementPalier[]>
+  /** Enregistre l'ouverture ou la fermeture d'un palier : listerInventaires en tient compte aussitôt. */
+  enregistrerChangementPalier(changement: ChangementPalier): Promise<void>
+  getParametresGestion(): Promise<ParametresGestion>
 
   getReservation(id: string): Promise<Reservation | null>
   trouverReservationParReference(reference: string): Promise<Reservation | null>

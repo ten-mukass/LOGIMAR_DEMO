@@ -2,10 +2,14 @@
  * Repository de la démo : données d'exemple de data/seed, générées une fois en mémoire,
  * plus les réservations et paiements du visiteur, conservés dans le navigateur.
  */
-import { compositionDe, occupationAvecPriorite, occupeDesPlaces } from "@/domain/occupation"
+import type { ParametresGestion } from "@/domain/config"
+import { estVendue, grouperParTraversee } from "@/domain/indicateurs"
+import { compositionDe, occupationAvecPriorite } from "@/domain/occupation"
+import { appliquerChangements, palierOuvertA } from "@/domain/paliers"
 import { genererTraversees, jourDeDepart } from "@/domain/programme"
 import { appliquerGrille, placesNecessaires, placesRestantesTraversee, type Occupation } from "@/domain/tarifs"
 import type {
+  ChangementPalier,
   ClasseReservation,
   Client,
   CodeFamille,
@@ -26,6 +30,7 @@ export interface DonneesDemo {
   traversees: Traversee[]
   classesParTraversee: Map<string, ClasseReservation[]>
   ventes: Reservation[]
+  ventesParTraversee: Map<string, Reservation[]>
 }
 
 export function construireDonneesDemo(seed: Seed): DonneesDemo {
@@ -33,7 +38,7 @@ export function construireDonneesDemo(seed: Seed): DonneesDemo {
   const traversees = genererTraversees(seed.regles, seed.config.periode, (id) => capacites.get(id) ?? 0)
   const classesParTraversee = new Map(traversees.map((t) => [t.id, appliquerGrille(t, seed.grille)]))
   const ventes = genererVentes(traversees, classesParTraversee, seed.config.bornesAge, seed.parametresVentes)
-  return { traversees, classesParTraversee, ventes }
+  return { traversees, classesParTraversee, ventes, ventesParTraversee: grouperParTraversee(ventes) }
 }
 
 /** Données du visiteur conservées dans le navigateur. */
@@ -46,6 +51,8 @@ interface DonneesLocales {
   clients: Client[]
   codes: CodeVerification[]
   compteursFactures: Record<string, number>
+  /** Back-office : ouvertures et fermetures manuelles de paliers. */
+  changementsPaliers: ChangementPalier[]
 }
 
 const CLE = "logimar-demo:v2:donnees"
@@ -58,6 +65,7 @@ const VIDE: DonneesLocales = {
   clients: [],
   codes: [],
   compteursFactures: {},
+  changementsPaliers: [],
 }
 
 /** Remplace l'élément de même id, ou l'ajoute. */
@@ -91,18 +99,47 @@ export class DemoRepository implements Repository {
     this.stockage.ecrire(CLE, JSON.stringify(d))
   }
 
-  /** Occupation d'une traversée : réservations du visiteur d'abord, puis ventes d'exemple qui tiennent encore. */
-  private occupation(traversee: Traversee, locales: Reservation[], maintenant: Date): { occupation: Occupation; ventes: Reservation[] } {
+  /**
+   * Occupation d'une traversée : réservations du visiteur d'abord, puis ventes d'exemple qui tiennent encore.
+   * Une vente d'exemple tombée dans un palier fermé à la main au moment de l'achat n'a pas lieu.
+   */
+  private occupation(
+    traversee: Traversee,
+    locales: Reservation[],
+    changements: ChangementPalier[],
+    maintenant: Date,
+  ): { occupation: Occupation; ventes: Reservation[] } {
     const classes = this.donnees().classesParTraversee.get(traversee.id) ?? []
     const quotas = new Map(classes.map((c) => [c.id, c.quota]))
+    const ventes = (this.donnees().ventesParTraversee.get(traversee.id) ?? []).filter((r) =>
+      palierOuvertA(changements, r.classeId, r.creeLe),
+    )
     const { occupation, secondairesRetenues } = occupationAvecPriorite(
       locales.filter((r) => r.traverseeId === traversee.id),
-      this.donnees().ventes.filter((r) => r.traverseeId === traversee.id),
+      ventes,
       traversee.capaciteVendable,
       quotas,
       maintenant,
     )
     return { occupation, ventes: secondairesRetenues }
+  }
+
+  private changementsDe(d: DonneesLocales, traverseeId: string): ChangementPalier[] {
+    return d.changementsPaliers.filter((c) => c.traverseeId === traverseeId)
+  }
+
+  /** Réservations du visiteur et ventes d'exemple retenues, pour les traversées demandées (toutes par défaut). */
+  private reservationsRetenues(maintenant: Date, traverseeIds?: string[]): Reservation[] {
+    const d = this.locales()
+    const ids = traverseeIds ? new Set(traverseeIds) : null
+    const resultat: Reservation[] = []
+    for (const traversee of this.donnees().traversees) {
+      if (ids && !ids.has(traversee.id)) continue
+      const { ventes } = this.occupation(traversee, d.reservations, this.changementsDe(d, traversee.id), maintenant)
+      resultat.push(...ventes)
+    }
+    resultat.push(...d.reservations.filter((r) => !ids || ids.has(r.traverseeId)))
+    return resultat
   }
 
   async getReferentiel(): Promise<Referentiel> {
@@ -146,14 +183,15 @@ export class DemoRepository implements Repository {
 
   async listerInventaires(traverseeIds: string[], maintenant: Date): Promise<Inventaire[]> {
     const ids = new Set(traverseeIds)
-    const locales = this.locales().reservations
+    const d = this.locales()
     return this.donnees()
       .traversees.filter((t) => ids.has(t.id))
       .map((traversee) => {
-        const { occupation } = this.occupation(traversee, locales, maintenant)
+        const changements = this.changementsDe(d, traversee.id)
+        const { occupation } = this.occupation(traversee, d.reservations, changements, maintenant)
         return {
           traversee,
-          classes: this.donnees().classesParTraversee.get(traversee.id) ?? [],
+          classes: appliquerChangements(this.donnees().classesParTraversee.get(traversee.id) ?? [], changements),
           occupation,
           placesRestantes: placesRestantesTraversee(traversee.capaciteVendable, occupation),
         }
@@ -162,11 +200,28 @@ export class DemoRepository implements Repository {
 
   async repartitionParFamille(maintenant: Date): Promise<Record<CodeFamille, number>> {
     const repartition: Record<CodeFamille, number> = { ECO: 0, STD: 0, FLEX: 0 }
-    const vendues = [...this.donnees().ventes, ...this.locales().reservations].filter(
-      (r) => r.statut !== "bloquee" && occupeDesPlaces(r, maintenant),
-    )
-    for (const r of vendues) repartition[r.familleCode] += placesNecessaires(compositionDe(r.passagers))
+    for (const r of this.reservationsRetenues(maintenant)) {
+      if (estVendue(r, maintenant)) repartition[r.familleCode] += placesNecessaires(compositionDe(r.passagers))
+    }
     return repartition
+  }
+
+  async listerReservations(maintenant: Date, filtre: { traverseeIds?: string[] } = {}): Promise<Reservation[]> {
+    return this.reservationsRetenues(maintenant, filtre.traverseeIds)
+  }
+
+  async listerChangementsPaliers(traverseeId?: string): Promise<ChangementPalier[]> {
+    return this.locales()
+      .changementsPaliers.filter((c) => traverseeId === undefined || c.traverseeId === traverseeId)
+      .sort((a, b) => Date.parse(a.le) - Date.parse(b.le))
+  }
+
+  async enregistrerChangementPalier(changement: ChangementPalier): Promise<void> {
+    this.modifier((d) => ({ ...d, changementsPaliers: remplacer(d.changementsPaliers, changement) }))
+  }
+
+  async getParametresGestion(): Promise<ParametresGestion> {
+    return this.seed.gestion.parametres
   }
 
   async getReservation(id: string): Promise<Reservation | null> {

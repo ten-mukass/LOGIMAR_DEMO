@@ -5,6 +5,7 @@
 import { agences } from "./agences"
 import { rubriquesAide } from "./aide"
 import { config } from "./config"
+import { gestion } from "./gestion"
 import { infosTrafic } from "./info-trafic"
 import { navires } from "./navire"
 import { options } from "./options"
@@ -35,6 +36,7 @@ export const seed = {
   cleSignatureBilletDemo,
   societe,
   rubriquesAide,
+  gestion,
 }
 
 export type Seed = typeof seed

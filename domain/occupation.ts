@@ -5,7 +5,7 @@ import { placesNecessaires, type Occupation } from "./tarifs"
 import type { CompositionPassagers, Passager, Reservation, StatutReservation } from "./types"
 
 /** Statuts qui consomment définitivement des places. */
-const STATUTS_VENDUS: StatutReservation[] = ["payee", "emise", "embarquee", "absente"]
+export const STATUTS_VENDUS: readonly StatutReservation[] = ["payee", "emise", "embarquee", "absente"]
 
 export function compositionDe(passagers: Pick<Passager, "categorie">[]): CompositionPassagers {
   return {

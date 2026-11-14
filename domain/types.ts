@@ -313,3 +313,19 @@ export interface CodeVerification {
   expireAt: string
   tentatives: number
 }
+
+/**
+ * Ouverture ou fermeture manuelle d'un palier par le revenue manager, avec son motif
+ * (CAHIER_DES_CHARGES_GESTION §3.3 ; en production, inscrite au journal d'audit).
+ * L'état d'un palier est celui du dernier changement ; sans changement, il est ouvert.
+ */
+export interface ChangementPalier {
+  id: string
+  traverseeId: string
+  classeId: string
+  ouverte: boolean
+  motif: string
+  /** Démo : libellé fixe (pas de comptes) ; production : l'utilisateur connecté. */
+  auteur: string
+  le: string
+}

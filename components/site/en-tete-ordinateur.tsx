@@ -4,12 +4,13 @@ import { UserRound } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { liensNavigation, rubriqueActive } from "./liens"
+import { estEspaceGestion, liensNavigation, rubriqueActive } from "./liens"
 import { Logo } from "./logo"
 
 /** En-tête des écrans larges ; sur mobile, chaque écran a son propre en-tête et la navigation est en bas. */
 export function EnTeteOrdinateur() {
   const chemin = usePathname()
+  if (estEspaceGestion(chemin)) return null
   return (
     <header className="hidden border-b border-bordure bg-white md:block">
       <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-4 px-6 lg:px-8">
