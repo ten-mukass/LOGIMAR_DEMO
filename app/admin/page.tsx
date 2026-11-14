@@ -30,7 +30,7 @@ export default function AdminDashboard() {
             {/* Intro */}
             <div>
                 <h1 className="text-2xl font-bold text-slate-900">Tableau de Bord</h1>
-                <p className="text-slate-500">Vue d'ensemble de l'activité du mardi 10 mars.</p>
+                <p className="text-slate-500">Vue d’ensemble de l’activité du mardi 10 mars.</p>
             </div>
 
             {/* KPI Cards */}
@@ -39,7 +39,7 @@ export default function AdminDashboard() {
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
                     <div className="flex justify-between items-start mb-4">
                         <div>
-                            <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Chiffre d'Affaires</p>
+                            <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Chiffre d’Affaires</p>
                             <h3 className="text-3xl font-bold text-slate-900 mt-1">2.45M <span className="text-sm font-normal text-slate-400">FCFA</span></h3>
                         </div>
                         <div className="bg-emerald-50 p-2 rounded-lg">

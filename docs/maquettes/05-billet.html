@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Billet électronique avec QR code</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#0A64A4}a:hover{color:#0F3A73}
+</style>
+<style>body{background:#DDE5EE} body>div{margin:24px auto}</style>
+</head>
+<body>
+<div style="width: 390px; height: 1320px; box-sizing: border-box; background: #0F3A73; font-family: Inter, system-ui, sans-serif; color: #12233B; display: flex; flex-direction: column; gap: 18px; padding: 20px 16px">
+
+<div style="display: flex; align-items: center; gap: 12px">
+<div style="width: 44px; height: 44px; border-radius: 999px; background: #0B7A3A; display: flex; align-items: center; justify-content: center">
+<svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+</div>
+<div style="display: flex; flex-direction: column"><span style="font-family: Montserrat, sans-serif; font-weight: 800; font-size: 20px; color: #FFFFFF">Paiement confirmé</span><span style="font-size: 13px; color: #CFE0F3">Notez votre référence : elle suffit pour retrouver ce billet</span></div>
+</div>
+
+<div style="background: #FFFFFF; border-radius: 22px; overflow: hidden; display: flex; flex-direction: column">
+<div style="padding: 16px 18px; display: flex; justify-content: space-between; align-items: center; background: #EAF3FB">
+<div style="display: flex; align-items: center; gap: 10px">
+<img src="../assets/logo-logimar-241.png" alt="LOGIMAR 241" style="width: 46px; height: 34px; object-fit: contain; background: #FFFFFF; border-radius: 8px">
+<strong style="font-family: Montserrat, sans-serif; font-size: 15px; color: #0F3A73">Victoria Jet</strong>
+</div>
+<div style="display: flex; flex-direction: column; align-items: flex-end"><span style="font-size: 11px; color: #4A5B72; font-weight: 600">RÉFÉRENCE</span><strong style="font-family: Montserrat, sans-serif; font-size: 16px; letter-spacing: 1px; color: #0F3A73">LGM-7K4Q2</strong></div>
+</div>
+
+<div style="padding: 18px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; align-items: center; gap: 12px">
+<div style="display: flex; flex-direction: column"><span style="font-family: Montserrat, sans-serif; font-weight: 800; font-size: 30px">LBV</span><span style="font-size: 13px; color: #4A5B72">Libreville</span></div>
+<div style="flex: 1; height: 2px; background: #0B7CC1"></div>
+<div style="display: flex; flex-direction: column; align-items: flex-end"><span style="font-family: Montserrat, sans-serif; font-weight: 800; font-size: 30px">POG</span><span style="font-size: 13px; color: #4A5B72">Port-Gentil</span></div>
+</div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px">
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; font-weight: 600; color: #4A5B72">DATE</span><strong style="font-size: 15px">Mar. 17 nov.</strong></div>
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; font-weight: 600; color: #4A5B72">DÉPART</span><strong style="font-size: 15px">12:15</strong></div>
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; font-weight: 600; color: #4A5B72">ARRIVÉE</span><strong style="font-size: 15px">15:45</strong></div>
+</div>
+<div style="padding: 12px 14px; border-radius: 12px; background: #F3E12B; color: #0F3A73; display: flex; flex-direction: column; gap: 2px">
+<strong style="font-size: 15px">Enregistrement dès 09:30</strong>
+<span style="font-size: 13px">Après la fermeture, l'embarquement est refusé. Terminal : [TERMINAL LIBREVILLE].</span>
+</div>
+</div>
+
+<div style="display: flex; align-items: center">
+<div style="width: 14px; height: 28px; border-radius: 0 14px 14px 0; background: #0F3A73"></div>
+<div style="flex: 1; border-top: 2px dashed #D9E3EE"></div>
+<div style="width: 14px; height: 28px; border-radius: 14px 0 0 14px; background: #0F3A73"></div>
+</div>
+
+<div style="padding: 16px 18px 20px; display: flex; flex-direction: column; align-items: center; gap: 14px">
+<svg role="img" aria-label="QR code du billet LGM-7K4Q2 (exemple)" width="168" height="168" viewBox="0 0 21 21" shape-rendering="crispEdges">
+<rect width="21" height="21" fill="#FFFFFF"></rect>
+<path fill="#12233B" d="M0 0h7v7H0zM14 0h7v7h-7zM0 14h7v7H0z"></path>
+<path fill="#FFFFFF" d="M1 1h5v5H1zM15 1h5v5h-5zM1 15h5v5H1z"></path>
+<path fill="#12233B" d="M2 2h3v3H2zM16 2h3v3h-3zM2 16h3v3H2zM8 0h1v2H8zM10 1h2v1h-2zM9 3h1v2H9zM11 4h2v2h-2zM8 6h1v2H8zM10 7h1v1h-1zM12 7h2v1h-2zM0 8h2v1H0zM3 8h2v2H3zM6 9h2v1H6zM9 9h3v1H9zM14 8h1v3h-1zM16 9h2v1h-2zM19 8h2v2h-2zM1 11h2v1H1zM5 11h1v2H5zM8 11h2v2H8zM11 11h1v1h-1zM13 12h2v1h-2zM17 11h1v2h-1zM19 12h1v1h-1zM8 14h1v2H8zM10 13h2v1h-2zM12 15h1v2h-1zM14 14h3v1h-3zM18 14h2v2h-2zM9 17h2v1H9zM14 16h1v2h-1zM16 17h2v1h-2zM19 17h2v1h-2zM8 19h3v1H8zM12 18h1v3h-1zM15 19h2v2h-2zM18 19h1v1h-1z"></path>
+</svg>
+<span style="font-size: 13px; color: #4A5B72; text-align: center">À présenter avec une pièce d'identité pour chaque passager.</span>
+<div style="width: 100%; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; justify-content: space-between; font-size: 14px"><span>MBA Paul</span><span style="color: #4A5B72">Adulte · CNI</span></div>
+<div style="display: flex; justify-content: space-between; font-size: 14px"><span>NZE Marie</span><span style="color: #4A5B72">Adulte · Passeport</span></div>
+<div style="display: flex; justify-content: space-between; font-size: 14px"><span>MBA Léa</span><span style="color: #4A5B72">Enfant</span></div>
+</div>
+</div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<a href="#" style="height: 52px; border-radius: 14px; background: #FFFFFF; color: #0F3A73; font-weight: 700; font-size: 15px; display: flex; align-items: center; justify-content: center; text-decoration: none">Billet PDF</a>
+<a href="#" style="height: 52px; border-radius: 14px; background: #FFFFFF; color: #0F3A73; font-weight: 700; font-size: 15px; display: flex; align-items: center; justify-content: center; text-decoration: none">Facture PDF</a>
+</div>
+<div style="background: #FFFFFF; border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+<strong style="font-family: Montserrat, sans-serif; font-size: 16px; color: #0F3A73">Gardez vos billets dans l'application</strong>
+<span style="font-size: 13px; line-height: 1.45; color: #4A5B72">Choisissez un mot de passe pour le +241 07 12 34 56 : billets, factures et passagers enregistrés pour la prochaine fois.</span>
+<a href="#" style="height: 52px; border-radius: 14px; background: #0B7A3A; color: #FFFFFF; font-weight: 700; font-size: 15px; display: flex; align-items: center; justify-content: center; text-decoration: none">Créer mon compte</a>
+<a href="#" style="font-size: 14px; font-weight: 600; text-align: center; color: #0A64A4; min-height: 24px">Plus tard</a>
+</div>
+<a href="#" style="height: 52px; border-radius: 14px; border: 2px solid #FFFFFF; color: #FFFFFF; font-weight: 700; font-size: 15px; display: flex; align-items: center; justify-content: center; text-decoration: none">Itinéraire vers le terminal</a>
+</div>
+</body>
+</html>

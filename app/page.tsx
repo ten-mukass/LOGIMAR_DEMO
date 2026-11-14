@@ -27,7 +27,7 @@ export default function Home() {
               Voyagez Mieux.<br />Voyagez Vite.
             </h1>
             <p className="text-blue-100/80 max-w-md mx-auto mb-8 font-light">
-              L'excellence maritime entre Libreville et Port-Gentil.
+              L’excellence maritime entre Libreville et Port-Gentil.
             </p>
             <Button asChild size="lg" className="w-full max-w-xs rounded-full bg-emerald-500 hover:bg-emerald-600 text-white border-0 shadow-lg shadow-emerald-500/20 px-8 py-6 text-lg">
               <Link href="/search" className="flex items-center justify-center gap-2 whitespace-nowrap">

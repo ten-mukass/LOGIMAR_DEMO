@@ -47,7 +47,7 @@ export default function SuccessPage() {
                             <Share2 className="h-4 w-4" /> Partager le trajet
                         </Button>
                         <Link href="/" className="block">
-                            <Button variant="link" className="text-slate-500 mt-2">Retour à l'accueil</Button>
+                            <Button variant="link" className="text-slate-500 mt-2">Retour à l’accueil</Button>
                         </Link>
                     </div>
                 </div>

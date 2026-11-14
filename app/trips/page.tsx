@@ -67,7 +67,7 @@ const TripsContent = () => {
                                     <QrCode className="h-32 w-32 text-slate-900" />
                                 </div>
                             </div>
-                            <p className="text-center text-xs text-slate-400 mb-6">Présentez ce QR code à l'embarquement</p>
+                            <p className="text-center text-xs text-slate-400 mb-6">Présentez ce QR code à l’embarquement</p>
 
                             {/* Added Options */}
                             {(hasPriority || hasInsurance || extraLuggage > 0) && (
@@ -106,7 +106,7 @@ const TripsContent = () => {
                             <Ticket className="h-8 w-8 text-blue-500" />
                         </div>
                         <h2 className="text-lg font-bold text-slate-900 mb-2">Aucun voyage à venir</h2>
-                        <p className="text-slate-500 mb-6">Vous n'avez pas encore de billets réservés.</p>
+                        <p className="text-slate-500 mb-6">Vous n’avez pas encore de billets réservés.</p>
                         <Button asChild>
                             <Link href="/search">Réserver un voyage</Link>
                         </Button>
