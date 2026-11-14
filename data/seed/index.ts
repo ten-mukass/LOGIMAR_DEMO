@@ -7,6 +7,7 @@ import { config } from "./config"
 import { infosTrafic } from "./info-trafic"
 import { navires } from "./navire"
 import { options } from "./options"
+import { cleSignatureBilletDemo, operateurs, paiementSimule } from "./paiement"
 import { lignes, ports, terminaux } from "./ports"
 import { regles } from "./programme"
 import { familles, grille } from "./tarifs"
@@ -27,6 +28,9 @@ export const seed = {
   infosTrafic,
   textes,
   parametresVentes,
+  operateurs,
+  paiementSimule,
+  cleSignatureBilletDemo,
 }
 
 export type Seed = typeof seed

@@ -11,7 +11,7 @@ import { Segmente } from "@/components/ui/segmente"
 import type { ConfigCommerciale } from "@/domain/config"
 import { resumeComposition, trancheAge, validerComposition } from "@/domain/passagers"
 import { estOuverteALaVente, jourDeDepart, joursOuvertsALaVente, trouverLigne } from "@/domain/programme"
-import { versParametres } from "@/domain/recherche"
+import { versParametres, type CriteresRecherche } from "@/domain/recherche"
 import { formatJourCourt } from "@/domain/temps"
 import type { CodePort, CompositionPassagers, Ligne, Port, Traversee } from "@/domain/types"
 import { useDonnees } from "@/lib/use-donnees"
@@ -50,11 +50,14 @@ export function FormulaireRecherche({
   ports,
   lignes,
   config,
+  initial,
   className,
 }: {
   ports: Port[]
   lignes: Ligne[]
   config: ConfigCommerciale
+  /** Recherche à reprendre (lien « Modifier » des résultats). */
+  initial?: CriteresRecherche | null
   className?: string
 }) {
   const router = useRouter()
@@ -62,12 +65,14 @@ export function FormulaireRecherche({
   const nomPort = (code: CodePort) => ports.find((p) => p.code === code)?.nom ?? code
   const codePort = (id: string) => ports.find((p) => p.id === id)?.code as CodePort
 
-  const [type, setType] = useState<TypeVoyage>("aller")
-  const [depart, setDepart] = useState<CodePort>(codePort(lignes[0].portDepartId))
-  const [arrivee, setArrivee] = useState<CodePort>(codePort(lignes[0].portArriveeId))
-  const [dateChoisie, setDateChoisie] = useState<string | null>(null)
-  const [retourChoisi, setRetourChoisi] = useState<string | null>(null)
-  const [passagers, setPassagers] = useState<CompositionPassagers>({ adultes: 1, enfants: 0, bebes: 0 })
+  const [type, setType] = useState<TypeVoyage>(initial?.dateRetour ? "aller-retour" : "aller")
+  const [depart, setDepart] = useState<CodePort>(initial?.depart ?? codePort(lignes[0].portDepartId))
+  const [arrivee, setArrivee] = useState<CodePort>(initial?.arrivee ?? codePort(lignes[0].portArriveeId))
+  const [dateChoisie, setDateChoisie] = useState<string | null>(initial?.date ?? null)
+  const [retourChoisi, setRetourChoisi] = useState<string | null>(initial?.dateRetour ?? null)
+  const [passagers, setPassagers] = useState<CompositionPassagers>(
+    initial?.passagers ?? { adultes: 1, enfants: 0, bebes: 0 },
+  )
   const [feuille, setFeuille] = useState<FeuilleOuverte>(null)
   const [erreurs, setErreurs] = useState<string[]>([])
 

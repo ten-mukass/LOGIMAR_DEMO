@@ -1,13 +1,21 @@
 /**
- * Repository de la démo : données d'exemple de data/seed, générées une fois en mémoire.
- * Les réservations du visiteur et les réglages du back-office s'y ajouteront (stockage du navigateur).
+ * Repository de la démo : données d'exemple de data/seed, générées une fois en mémoire,
+ * plus les réservations et paiements du visiteur, conservés dans le navigateur.
  */
-import { calculerOccupations } from "@/domain/occupation"
+import { compositionDe, occupationAvecPriorite, occupeDesPlaces } from "@/domain/occupation"
 import { genererTraversees, jourDeDepart } from "@/domain/programme"
-import { appliquerGrille, placesRestantesTraversee } from "@/domain/tarifs"
-import type { ClasseReservation, InfoTrafic, Reservation, Traversee } from "@/domain/types"
+import { appliquerGrille, placesNecessaires, placesRestantesTraversee, type Occupation } from "@/domain/tarifs"
+import type {
+  ClasseReservation,
+  CodeFamille,
+  InfoTrafic,
+  Paiement,
+  Reservation,
+  Traversee,
+} from "@/domain/types"
 import type { Seed } from "@/data/seed"
 import { genererVentes } from "@/data/seed/ventes"
+import { lireJson, stockageMemoire, type Stockage } from "../stockage"
 import type { FiltreTraversees, Inventaire, Referentiel, Repository } from "./repository"
 
 export interface DonneesDemo {
@@ -24,14 +32,50 @@ export function construireDonneesDemo(seed: Seed): DonneesDemo {
   return { traversees, classesParTraversee, ventes }
 }
 
+/** Données du visiteur conservées dans le navigateur. */
+interface DonneesLocales {
+  version: 1
+  reservations: Reservation[]
+  paiements: Paiement[]
+}
+
+const CLE = "logimar-demo:v1:donnees"
+const VIDE: DonneesLocales = { version: 1, reservations: [], paiements: [] }
+
 export class DemoRepository implements Repository {
   private cache: DonneesDemo | null = null
 
-  constructor(private readonly seed: Seed) {}
+  constructor(
+    private readonly seed: Seed,
+    private readonly stockage: Stockage = stockageMemoire(),
+  ) {}
 
   private donnees(): DonneesDemo {
     if (this.cache === null) this.cache = construireDonneesDemo(this.seed)
     return this.cache
+  }
+
+  private locales(): DonneesLocales {
+    const d = lireJson<DonneesLocales>(this.stockage, CLE, VIDE)
+    return d.version === 1 && Array.isArray(d.reservations) && Array.isArray(d.paiements) ? d : VIDE
+  }
+
+  private sauver(d: DonneesLocales): void {
+    this.stockage.ecrire(CLE, JSON.stringify(d))
+  }
+
+  /** Occupation d'une traversée : réservations du visiteur d'abord, puis ventes d'exemple qui tiennent encore. */
+  private occupation(traversee: Traversee, locales: Reservation[], maintenant: Date): { occupation: Occupation; ventes: Reservation[] } {
+    const classes = this.donnees().classesParTraversee.get(traversee.id) ?? []
+    const quotas = new Map(classes.map((c) => [c.id, c.quota]))
+    const { occupation, secondairesRetenues } = occupationAvecPriorite(
+      locales.filter((r) => r.traverseeId === traversee.id),
+      this.donnees().ventes.filter((r) => r.traverseeId === traversee.id),
+      traversee.capaciteVendable,
+      quotas,
+      maintenant,
+    )
+    return { occupation, ventes: secondairesRetenues }
   }
 
   async getReferentiel(): Promise<Referentiel> {
@@ -46,7 +90,9 @@ export class DemoRepository implements Repository {
       familles: s.familles,
       options: s.options,
       agences: s.agences,
+      operateurs: s.operateurs.filter((o) => s.config.moyensPaiementActifs[o.code]),
       textes: s.textes,
+      paiementSimule: s.paiementSimule,
     }
   }
 
@@ -70,22 +116,67 @@ export class DemoRepository implements Repository {
   }
 
   async listerInventaires(traverseeIds: string[], maintenant: Date): Promise<Inventaire[]> {
-    const { traversees, classesParTraversee, ventes } = this.donnees()
     const ids = new Set(traverseeIds)
-    const occupations = calculerOccupations(
-      ventes.filter((v) => ids.has(v.traverseeId)),
-      maintenant,
-    )
-    return traversees
-      .filter((t) => ids.has(t.id))
+    const locales = this.locales().reservations
+    return this.donnees()
+      .traversees.filter((t) => ids.has(t.id))
       .map((traversee) => {
-        const occupation = occupations.get(traversee.id) ?? { total: 0, parClasse: {} }
+        const { occupation } = this.occupation(traversee, locales, maintenant)
         return {
           traversee,
-          classes: classesParTraversee.get(traversee.id) ?? [],
+          classes: this.donnees().classesParTraversee.get(traversee.id) ?? [],
           occupation,
           placesRestantes: placesRestantesTraversee(traversee.capaciteVendable, occupation),
         }
       })
+  }
+
+  async repartitionParFamille(maintenant: Date): Promise<Record<CodeFamille, number>> {
+    const repartition: Record<CodeFamille, number> = { ECO: 0, STD: 0, FLEX: 0 }
+    const vendues = [...this.donnees().ventes, ...this.locales().reservations].filter(
+      (r) => r.statut !== "bloquee" && occupeDesPlaces(r, maintenant),
+    )
+    for (const r of vendues) repartition[r.familleCode] += placesNecessaires(compositionDe(r.passagers))
+    return repartition
+  }
+
+  async getReservation(id: string): Promise<Reservation | null> {
+    return (
+      this.locales().reservations.find((r) => r.id === id) ??
+      this.donnees().ventes.find((r) => r.id === id) ??
+      null
+    )
+  }
+
+  async trouverReservationParReference(reference: string): Promise<Reservation | null> {
+    return (
+      this.locales().reservations.find((r) => r.reference === reference) ??
+      this.donnees().ventes.find((r) => r.reference === reference) ??
+      null
+    )
+  }
+
+  async referenceExiste(reference: string): Promise<boolean> {
+    return (await this.trouverReservationParReference(reference)) !== null
+  }
+
+  async enregistrerReservation(reservation: Reservation): Promise<void> {
+    const d = this.locales()
+    const autres = d.reservations.filter((r) => r.id !== reservation.id)
+    this.sauver({ ...d, reservations: [...autres, reservation] })
+  }
+
+  async getPaiement(id: string): Promise<Paiement | null> {
+    return this.locales().paiements.find((p) => p.id === id) ?? null
+  }
+
+  async trouverPaiementParTransaction(refTransaction: string): Promise<Paiement | null> {
+    return this.locales().paiements.find((p) => p.refTransaction === refTransaction) ?? null
+  }
+
+  async enregistrerPaiement(paiement: Paiement): Promise<void> {
+    const d = this.locales()
+    const autres = d.paiements.filter((p) => p.id !== paiement.id)
+    this.sauver({ ...d, paiements: [...autres, paiement] })
   }
 }
