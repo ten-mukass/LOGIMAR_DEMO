@@ -1,6 +1,6 @@
 import { PDFDocument } from "pdf-lib"
 import { describe, expect, it } from "vitest"
-import { billetPdf, facturePdf, textePdf, type DonneesBilletPdf } from "./pdf"
+import { billetPdf, facturePdf, positionsColonnesBillet, textePdf, type DonneesBilletPdf } from "./pdf"
 
 const billet: DonneesBilletPdf = {
   sens: "Aller",
@@ -24,6 +24,19 @@ const billet: DonneesBilletPdf = {
 describe("PDF", () => {
   it("remplace les caractères absents des polices standard", () => {
     expect(textePdf("35 000 F LBV → POG ✓")).toBe("35 000 F LBV - POG ?")
+  })
+
+  it("place l'heure de départ après la date, même longue", async () => {
+    const doc = await PDFDocument.create()
+    const { StandardFonts } = await import("pdf-lib")
+    const gras = await doc.embedFont(StandardFonts.HelveticaBold)
+    for (const date of ["Mardi 17 novembre 2026", "Mercredi 30 septembre 2026"]) {
+      const largeur = gras.widthOfTextAtSize(date, 12)
+      const x = positionsColonnesBillet(largeur, 420, 28)
+      expect(x.depart).toBeGreaterThanOrEqual(28 + largeur + 20)
+      // L'heure de départ (« 12:15 ») ne touche pas l'heure d'arrivée, calée à droite.
+      expect(x.depart + gras.widthOfTextAtSize("12:15", 12)).toBeLessThan(x.arrivee - gras.widthOfTextAtSize("15:45", 12))
+    }
   })
 
   it("produit un billet d'une page par trajet", async () => {

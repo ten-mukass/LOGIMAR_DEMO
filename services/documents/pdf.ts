@@ -114,6 +114,23 @@ function filigrane(page: PDFPage, police: PDFFont) {
   })
 }
 
+/**
+ * Abscisses de la ligne Date / Départ / Arrivée du billet : la date (longue) part de la marge,
+ * le départ se place après la date, l'arrivée est calée sur la marge droite.
+ */
+export function positionsColonnesBillet(
+  largeurDate: number,
+  largeurPage: number,
+  marge: number,
+): { date: number; depart: number; arrivee: number } {
+  const ecart = 24
+  return {
+    date: marge,
+    depart: Math.max(marge + largeurDate + ecart, largeurPage * 0.45),
+    arrivee: largeurPage - marge,
+  }
+}
+
 export async function billetPdf(billets: DonneesBilletPdf[]): Promise<Uint8Array> {
   const doc = await PDFDocument.create()
   doc.setTitle(textePdf(`Billet LOGIMAR 241 ${billets.map((b) => b.reference).join(" ")}`))
@@ -137,16 +154,13 @@ export async function billetPdf(billets: DonneesBilletPdf[]): Promise<Uint8Array
     e.texte(b.depart.nom, 28, 452, { taille: 9, couleur: GRIS })
     e.texte(b.arrivee.nom, L - 28, 452, { taille: 9, couleur: GRIS, droite: true })
 
-    const colonnes: [string, string][] = [
-      ["DATE", b.date],
-      ["DÉPART", b.heureDepart],
-      ["ARRIVÉE", b.heureArrivee],
-    ]
-    colonnes.forEach(([libelle, valeur], i) => {
-      const x = 28 + i * 125
-      e.texte(libelle, x, 422, { taille: 7, couleur: GRIS })
-      e.texte(valeur, x, 406, { taille: 12, gras: true })
-    })
+    const colonnes = positionsColonnesBillet(gras.widthOfTextAtSize(textePdf(b.date), 12), L, 28)
+    e.texte("DATE", colonnes.date, 422, { taille: 7, couleur: GRIS })
+    e.texte(b.date, colonnes.date, 406, { taille: 12, gras: true })
+    e.texte("DÉPART", colonnes.depart, 422, { taille: 7, couleur: GRIS })
+    e.texte(b.heureDepart, colonnes.depart, 406, { taille: 12, gras: true })
+    e.texte("ARRIVÉE", colonnes.arrivee, 422, { taille: 7, couleur: GRIS, droite: true })
+    e.texte(b.heureArrivee, colonnes.arrivee, 406, { taille: 12, gras: true, droite: true })
 
     page.drawRectangle({ x: 28, y: 340, width: L - 56, height: 52, color: SOLEIL })
     e.texte(`Enregistrement dès ${b.enregistrement}`, 38, 374, { taille: 12, gras: true, couleur: MARINE })
