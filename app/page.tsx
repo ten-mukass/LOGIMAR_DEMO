@@ -6,12 +6,27 @@ import { PresentationNavire } from "@/components/accueil/presentation-navire"
 import { ProchainesTraversees } from "@/components/accueil/prochaines-traversees"
 import { Logo } from "@/components/site/logo"
 import { dureeTypeMinutes } from "@/domain/programme"
+import { lireCriteres } from "@/domain/recherche"
 import { repository } from "@/services"
 
 const NOMS_MOYENS = { airtel: "Airtel Money", moov: "Moov Money" } as const
 
-export default async function Accueil() {
+export default async function Accueil({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
   const { config, ports, lignes, navires, regles, agences } = await repository.getReferentiel()
+  // « Modifier » depuis les résultats : le formulaire reprend la recherche en cours.
+  const brut = await searchParams
+  const params = new URLSearchParams(
+    Object.entries(brut).flatMap(([cle, v]) => (typeof v === "string" ? [[cle, v]] : [])),
+  )
+  const { criteres } = lireCriteres(
+    params,
+    ports.map((p) => p.code),
+    config.passagersMax,
+  )
   const navire = navires[0]
   const moyens = (Object.keys(NOMS_MOYENS) as (keyof typeof NOMS_MOYENS)[])
     .filter((m) => config.moyensPaiementActifs[m])
@@ -40,7 +55,13 @@ export default async function Accueil() {
               </p>
             )}
           </div>
-          <FormulaireRecherche ports={ports} lignes={lignes} config={config} className="mt-5 md:mt-8 lg:mt-0" />
+          <FormulaireRecherche
+            ports={ports}
+            lignes={lignes}
+            config={config}
+            initial={criteres}
+            className="mt-5 md:mt-8 lg:mt-0"
+          />
         </div>
       </div>
 

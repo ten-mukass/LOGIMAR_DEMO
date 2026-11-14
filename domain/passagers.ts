@@ -2,7 +2,7 @@
  * Règles sur les passagers (docs/CAHIER_DES_CHARGES_RESERVATION.md §4.1).
  */
 import { estJour } from "./temps"
-import type { Categorie, CompositionPassagers } from "./types"
+import type { Categorie, CompositionPassagers, TypePiece } from "./types"
 
 export interface BornesAge {
   /** Âge à partir duquel on est enfant (en dessous : bébé). */
@@ -66,4 +66,70 @@ export function categorieSelonAge(dateNaissance: string, jourVoyage: string, bor
   if (age >= bornes.adulteDes) return "adulte"
   if (age >= bornes.enfantDes) return "enfant"
   return "bebe"
+}
+
+export const LIBELLES_PIECES: Record<TypePiece, string> = {
+  cni: "Carte nationale d’identité",
+  passeport: "Passeport",
+  "carte-sejour": "Carte de séjour",
+}
+
+export const LIBELLES_PIECES_COURTS: Record<TypePiece, string> = {
+  cni: "CNI",
+  passeport: "Passeport",
+  "carte-sejour": "Carte de séjour",
+}
+
+/** Saisie d'un passager telle qu'elle vient du formulaire. */
+export interface SaisiePassager {
+  categorie: Categorie
+  nom: string
+  prenom: string
+  dateNaissance: string
+  typePiece: TypePiece | ""
+  numeroPiece: string
+}
+
+export type ErreursPassager = Partial<Record<"nom" | "prenom" | "dateNaissance" | "typePiece" | "numeroPiece", string>>
+
+const RE_NOM = /^[\p{L}][\p{L}' .-]*$/u
+
+/**
+ * Adulte : nom, prénom, type et numéro de pièce. Enfant et bébé : nom, prénom, date de naissance
+ * cohérente avec la catégorie le jour du voyage (cahier des charges §3, écran Passagers).
+ */
+export function validerPassager(s: SaisiePassager, jourVoyage: string, bornes: BornesAge): ErreursPassager {
+  const erreurs: ErreursPassager = {}
+  const nom = s.nom.trim()
+  const prenom = s.prenom.trim()
+  if (!nom) erreurs.nom = "Indiquez le nom."
+  else if (!RE_NOM.test(nom) || nom.length > 50) erreurs.nom = "Nom invalide."
+  if (!prenom) erreurs.prenom = "Indiquez le prénom."
+  else if (!RE_NOM.test(prenom) || prenom.length > 50) erreurs.prenom = "Prénom invalide."
+
+  if (s.categorie === "adulte") {
+    if (!s.typePiece) erreurs.typePiece = "Choisissez la pièce d’identité."
+    const numero = s.numeroPiece.trim()
+    if (!numero) erreurs.numeroPiece = "Indiquez le numéro de la pièce."
+    else if (!/^[A-Za-z0-9 -]{4,20}$/.test(numero)) erreurs.numeroPiece = "Numéro de pièce invalide."
+  } else if (!s.dateNaissance || !estJour(s.dateNaissance)) {
+    erreurs.dateNaissance = "Indiquez la date de naissance."
+  } else if (s.dateNaissance > jourVoyage) {
+    erreurs.dateNaissance = "La date de naissance doit précéder le voyage."
+  } else {
+    const categorie = categorieSelonAge(s.dateNaissance, jourVoyage, bornes)
+    if (categorie !== s.categorie) {
+      erreurs.dateNaissance = `Le jour du voyage, ce passager compte comme ${libelleCategorie(categorie)} (${trancheAge(categorie, bornes)}). Modifiez le nombre de passagers.`
+    }
+  }
+  return erreurs
+}
+
+/** Liste des catégories, dans l'ordre d'affichage, pour une composition. */
+export function categoriesDe(c: CompositionPassagers): Categorie[] {
+  return [
+    ...Array<Categorie>(c.adultes).fill("adulte"),
+    ...Array<Categorie>(c.enfants).fill("enfant"),
+    ...Array<Categorie>(c.bebes).fill("bebe"),
+  ]
 }

@@ -3,18 +3,22 @@
  * Démo : DemoRepository (données d'exemple + navigateur). Production : implémentation serveur (PostgreSQL).
  * Toutes les méthodes sont asynchrones pour que le passage au serveur ne change pas les écrans.
  */
-import type { ConfigCommerciale } from "@/domain/config"
+import type { ConfigCommerciale, ConfigPaiementSimule } from "@/domain/config"
 import type { Occupation } from "@/domain/tarifs"
 import type {
   Agence,
   ClasseReservation,
+  CodeFamille,
   FamilleTarifaire,
   InfoTrafic,
   Ligne,
   Navire,
+  OperateurMobile,
   OptionCatalogue,
+  Paiement,
   Port,
   RegleProgramme,
+  Reservation,
   Terminal,
   Traversee,
 } from "@/domain/types"
@@ -30,7 +34,11 @@ export interface Referentiel {
   familles: FamilleTarifaire[]
   options: OptionCatalogue[]
   agences: Agence[]
+  /** Opérateurs Mobile Money actifs. */
+  operateurs: OperateurMobile[]
   textes: { regleEnregistrement: string }
+  /** Démo seulement : réglages du paiement simulé, affichés pour le présentateur (null en production). */
+  paiementSimule: ConfigPaiementSimule | null
 }
 
 export interface FiltreTraversees {
@@ -56,4 +64,17 @@ export interface Repository {
   listerTraversees(filtre?: FiltreTraversees): Promise<Traversee[]>
   getTraversee(id: string): Promise<Traversee | null>
   listerInventaires(traverseeIds: string[], maintenant: Date): Promise<Inventaire[]>
+  /** Passagers vendus par famille tarifaire jusqu'à cet instant (« Le plus choisi », tableaux de bord). */
+  repartitionParFamille(maintenant: Date): Promise<Record<CodeFamille, number>>
+
+  getReservation(id: string): Promise<Reservation | null>
+  trouverReservationParReference(reference: string): Promise<Reservation | null>
+  referenceExiste(reference: string): Promise<boolean>
+  /** Crée ou remplace une réservation. */
+  enregistrerReservation(reservation: Reservation): Promise<void>
+
+  getPaiement(id: string): Promise<Paiement | null>
+  trouverPaiementParTransaction(refTransaction: string): Promise<Paiement | null>
+  /** Crée ou remplace un paiement. */
+  enregistrerPaiement(paiement: Paiement): Promise<void>
 }

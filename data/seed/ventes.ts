@@ -226,6 +226,8 @@ function ventesTraversee(
             ? `${sansAccents(titulaire.prenom)}.${sansAccents(titulaire.nom)}@example.com`
             : null,
         passagers,
+        prixUnitaires: offre.prixUnitaires,
+        options: [],
         total: offre.total,
         devise: "XAF",
         bloqueeJusquA: null,

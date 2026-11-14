@@ -131,8 +131,18 @@ export type Canal = "web" | "agence" | "telephone"
 
 export type MoyenPaiement = "airtel" | "moov" | "especes"
 
+export type CodeOption = "BAGAGE" | "GARANTIE"
+
+/** Option choisie sur une réservation, au prix du moment. */
+export interface LigneOption {
+  code: CodeOption
+  quantite: number
+  prixUnitaire: number
+}
+
 export interface Reservation {
   id: string
+  /** Référence du billet, attribuée à l'émission (vide avant). */
   reference: string
   traverseeId: string
   familleCode: CodeFamille
@@ -141,12 +151,33 @@ export interface Reservation {
   telephone: string | null
   email: string | null
   passagers: Passager[]
+  /** Prix par catégorie, figés au moment du blocage. */
+  prixUnitaires: Prix
+  options: LigneOption[]
+  /** Passagers et options. */
   total: number
   devise: "XAF"
   bloqueeJusquA: string | null
   canal: Canal
   moyenPaiement: MoyenPaiement | null
   creeLe: string
+}
+
+export type StatutPaiement = "en-attente" | "reussi" | "refuse" | "rembourse"
+
+export interface Paiement {
+  id: string
+  reservationId: string
+  moyen: "airtel" | "moov"
+  /** Numéro Mobile Money débité (peut être celui d'un tiers). */
+  numero: string
+  montant: number
+  statut: StatutPaiement
+  /** Référence unique de la tentative, envoyée à l'opérateur. */
+  refTransaction: string
+  refOperateur: string | null
+  creeLe: string
+  majLe: string
 }
 
 export type NiveauInfoTrafic = "information" | "alerte"
@@ -169,7 +200,7 @@ export interface Agence {
 }
 
 export interface OptionCatalogue {
-  code: "BAGAGE" | "GARANTIE"
+  code: CodeOption
   libelle: string
   detail: string
   prix: number
@@ -197,4 +228,11 @@ export interface RegleProgramme {
 export interface Periode {
   du: string
   au: string
+}
+
+/** Opérateur Mobile Money proposé au paiement. */
+export interface OperateurMobile {
+  code: "airtel" | "moov"
+  nom: string
+  logo: string
 }

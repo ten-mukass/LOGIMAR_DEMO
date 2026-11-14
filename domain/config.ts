@@ -18,3 +18,10 @@ export interface ConfigCommerciale {
   ventesEnLigneJusqua: ClotureVentes
   moyensPaiementActifs: { airtel: boolean; moov: boolean }
 }
+
+/** Comportement du paiement simulé de la démo (PERIMETRE_DEMO). */
+export interface ConfigPaiementSimule {
+  delaiMs: number
+  /** Un numéro se terminant par ce suffixe simule un refus. */
+  suffixeRefus: string
+}
