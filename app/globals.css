@@ -1,17 +1,86 @@
 @import "tailwindcss";
 
-@layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-  }
+/* Charte LOGIMAR 241 — docs/DESIGN_TOKENS.md */
+:root {
+  --c-marine: #0f3a73;
+  --c-marine-2: #1c4a88;
+  --c-ocean: #0b7cc1;
+  --c-action: #0a64a4;
+  --c-foret: #0e9a48;
+  --c-foret-texte: #0b7a3a;
+  --c-soleil: #f3e12b;
+  --c-soleil-pale: #fff8cf;
+  --c-soleil-bordure: #e8d43a;
+  --c-encre: #12233b;
+  --c-gris: #4a5b72;
+  --c-ecume: #f3f7fb;
+  --c-bordure: #d9e3ee;
+  --c-bordure-champ: #c5d3e3;
+  --c-bleu-pale: #eaf3fb;
+  --c-vert-pale: #e3f4ea;
+  --c-alerte: #a23a16;
+  --c-alerte-pale: #fde8e1;
+  --font-titre: var(--font-montserrat), "Montserrat", sans-serif;
+  --font-texte: var(--font-inter), "Inter", system-ui, sans-serif;
+  --r-champ: 12px;
+  --r-carte: 16px;
+  --r-billet: 22px;
+}
 
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+@theme inline {
+  --color-marine: var(--c-marine);
+  --color-marine-2: var(--c-marine-2);
+  --color-ocean: var(--c-ocean);
+  --color-action: var(--c-action);
+  --color-foret: var(--c-foret);
+  --color-foret-texte: var(--c-foret-texte);
+  --color-soleil: var(--c-soleil);
+  --color-soleil-pale: var(--c-soleil-pale);
+  --color-soleil-bordure: var(--c-soleil-bordure);
+  --color-encre: var(--c-encre);
+  --color-gris: var(--c-gris);
+  --color-ecume: var(--c-ecume);
+  --color-bordure: var(--c-bordure);
+  --color-bordure-champ: var(--c-bordure-champ);
+  --color-bleu-pale: var(--c-bleu-pale);
+  --color-vert-pale: var(--c-vert-pale);
+  --color-alerte: var(--c-alerte);
+  --color-alerte-pale: var(--c-alerte-pale);
+
+  --font-sans: var(--font-texte);
+  --font-titre: var(--font-titre);
+
+  --radius-champ: var(--r-champ);
+  --radius-carte: var(--r-carte);
+  --radius-billet: var(--r-billet);
+
+  --shadow-recherche: 0 10px 30px rgba(15, 58, 115, 0.16);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
-    @apply bg-slate-50 text-slate-900 antialiased;
+    background-color: var(--c-ecume);
+    color: var(--c-encre);
+    font-family: var(--font-texte);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-titre);
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--c-ocean);
+    outline-offset: 2px;
+  }
+
+  dialog::backdrop {
+    background: rgb(18 35 59 / 0.5);
   }
 }
