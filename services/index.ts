@@ -9,6 +9,8 @@ import { DemoRepository } from "./repository/demo-repository"
 import type { Repository } from "./repository/repository"
 import { LocalAuthService } from "./auth/local-auth-service"
 import { ServiceBillets } from "./billets/service-billets"
+import { CodeDemoAccesGestion, type AccesGestion } from "./gestion/acces-gestion"
+import { ServiceGestion } from "./gestion/service-gestion"
 import { maintenant } from "./horloge"
 import { PreviewNotificationService } from "./notification/preview-notification-service"
 import { ServiceReservation } from "./reservation/service-reservation"
@@ -61,9 +63,20 @@ export const auth = new LocalAuthService({
 
 export const billets = new ServiceBillets({ repository, auth, stockage })
 
+/** Back-office : accès par code de démonstration, lecture des ventes et réglage des paliers. */
+export const accesGestion: AccesGestion = new CodeDemoAccesGestion({
+  code: seed.gestion.codeAccesDemo,
+  dureeHeures: seed.gestion.dureeSessionHeures,
+  stockage,
+  horloge: maintenant,
+})
+
+export const serviceGestion = new ServiceGestion({ repository, horloge: maintenant, genererId, auteur: seed.gestion.auteurDemo })
+
 /** Clé de signature des QR codes (démo : publique ; production : signature côté serveur). */
 export const cleSignatureBillet = seed.cleSignatureBilletDemo
 
 export type { FiltreTraversees, Inventaire, Referentiel, Repository } from "./repository/repository"
 export type { CommandeDetaillee, DemandeBlocage, Resultat } from "./reservation/service-reservation"
 export type { EtatSession } from "./auth/auth-service"
+export type { EtatVentes, ResultatGestion } from "./gestion/service-gestion"

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { generateur } from "./aleatoire"
 import { joursParJourSemaine, moisSuivant, semainesDuMois } from "./calendrier"
-import { formatFCFA } from "./format"
+import { formatEcart, formatFCFA, formatFCFACompact, formatPourcentage } from "./format"
 import { categorieSelonAge, resumeComposition, trancheAge, validerComposition } from "./passagers"
 import { lireCriteres, versParametres, type CriteresRecherche } from "./recherche"
 import { estReferenceValide, genererReference, normaliserReference } from "./reference"
@@ -103,5 +103,12 @@ describe("montants", () => {
     expect(formatFCFA(35000)).toBe("35 000 FCFA")
     expect(formatFCFA(35000, true)).toBe("35 000 F")
     expect(() => formatFCFA(10.5)).toThrow()
+    expect(formatFCFACompact(98_412_000)).toBe("98,4 M FCFA")
+    expect(formatFCFACompact(412_000)).toBe(formatFCFA(412_000))
+    expect(formatPourcentage(0.523)).toBe("52 %")
+    expect(formatPourcentage(0.5234, 1)).toBe("52,3 %")
+    expect(formatEcart(0.234)).toBe("+23 %")
+    expect(formatEcart(-0.1)).toBe("−10 %")
+    expect(formatEcart(0)).toBe("0 %")
   })
 })
