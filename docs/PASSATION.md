@@ -15,8 +15,8 @@
 |---|---|---|
 | 0 | Remise au vert du déploiement | Fusionnée (PR #1) |
 | 1 | Fondations, Accueil, Horaires | Fusionnée (PR #2), en production |
-| 2 | Parcours aller simple jusqu'au billet | PR #3 ouverte, Preview verte, en attente de relecture |
-| 3 | Aller-retour, PDF, e-mails, Mes billets, compte, Aide | Terminée en local, à pousser après la fusion de la PR #3 |
+| 2 | Parcours aller simple jusqu'au billet | Fusionnée (PR #3), en production |
+| 3 | Aller-retour, PDF, e-mails, Mes billets, compte, Aide | PR #4 ouverte, Preview verte, en attente de relecture et de fusion |
 | 4 | Back-office | À faire |
 | 5 | Scan (facultatif) | À faire |
 | 6 | Recette | À faire |
