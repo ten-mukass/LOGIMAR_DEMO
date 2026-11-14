@@ -215,6 +215,7 @@ function ventesTraversee(
       const titulaire = passagers[0]
       reservations.push({
         id,
+        commandeId: null,
         reference: referenceUnique(alea, references),
         traverseeId: t.id,
         familleCode: famille,

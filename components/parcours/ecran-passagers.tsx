@@ -42,30 +42,44 @@ const FAMILLES: CodeFamille[] = ["ECO", "STD", "FLEX"]
 export function EcranPassagers({ referentiel }: { referentiel: Referentiel }) {
   const { ports, config } = referentiel
   const maintenant = useMaintenant()
-  const { criteres, traverseeId, famille } = useCriteres(ports, config.passagersMax)
+  const { criteres, traverseeId, famille, traverseeRetourId, familleRetour } = useCriteres(ports, config.passagersMax)
   const familleCode = FAMILLES.find((f) => f === famille)
+  const familleRetourCode = FAMILLES.find((f) => f === familleRetour)
+  const retourDemande = Boolean(criteres?.dateRetour)
 
   const charger = useCallback(async () => {
     if (!traverseeId || !maintenant) return null
-    const [inventaire] = await repository.listerInventaires([traverseeId], maintenant)
-    return inventaire ?? null
-  }, [traverseeId, maintenant])
-  const { donnees: inventaire } = useDonnees(traverseeId && maintenant ? charger : null)
+    const ids = [traverseeId, ...(traverseeRetourId ? [traverseeRetourId] : [])]
+    const inventaires = await repository.listerInventaires(ids, maintenant)
+    const parId = (id: string) => inventaires.find((i) => i.traversee.id === id)
+    const aller = parId(traverseeId)
+    const retour = traverseeRetourId ? parId(traverseeRetourId) : undefined
+    if (!aller || (traverseeRetourId && !retour)) return null
+    return [aller, ...(retour ? [retour] : [])]
+  }, [traverseeId, traverseeRetourId, maintenant])
+  const { donnees: inventaires } = useDonnees(traverseeId && maintenant ? charger : null)
 
-  if (!criteres || !traverseeId || !familleCode || inventaire === null) {
+  const incomplet =
+    !criteres || !familleCode || inventaires === null || (retourDemande && (!traverseeRetourId || !familleRetourCode))
+  if (incomplet) {
     return <ParcoursInterrompu message="Il manque des informations sur la traversée choisie." />
   }
-  if (inventaire === undefined) {
+  if (inventaires === undefined) {
     return <div className="mx-auto mt-6 h-96 max-w-3xl animate-pulse rounded-carte bg-white" />
   }
+  const familles = [familleCode, ...(familleRetourCode ? [familleRetourCode] : [])]
   return (
     <FormulairePassagers
       referentiel={referentiel}
       criteres={criteres}
-      inventaire={inventaire}
-      familleCode={familleCode}
+      segments={inventaires.map((inventaire, i) => ({ inventaire, familleCode: familles[i] }))}
     />
   )
+}
+
+interface SegmentChoisi {
+  inventaire: Inventaire
+  familleCode: CodeFamille
 }
 
 function ParcoursInterrompu({ message, retour = "/" }: { message: string; retour?: string }) {
@@ -125,20 +139,20 @@ function sessionStockage() {
 function FormulairePassagers({
   referentiel,
   criteres,
-  inventaire,
-  familleCode,
+  segments,
 }: {
   referentiel: Referentiel
   criteres: CriteresRecherche
-  inventaire: Inventaire
-  familleCode: CodeFamille
+  segments: SegmentChoisi[]
 }) {
   const { config, familles } = referentiel
   const router = useRouter()
-  const traversee = inventaire.traversee
+  const traversee = segments[0].inventaire.traversee
   const jourVoyage = jourDeDepart(traversee)
-  const cle = `logimar-demo:brouillon:${traversee.id}:${criteres.passagers.adultes}-${criteres.passagers.enfants}-${criteres.passagers.bebes}`
+  const joursVoyage = segments.map((sg) => jourDeDepart(sg.inventaire.traversee))
+  const cle = `logimar-demo:brouillon:${segments.map((sg) => sg.inventaire.traversee.id).join("+")}:${criteres.passagers.adultes}-${criteres.passagers.enfants}-${criteres.passagers.bebes}`
   const [brouillon, setBrouillon] = useState<Brouillon>(() => brouillonInitial(cle, criteres))
+  const clientId: string | null = null // relié au compte client plus bas dans cette étape
   const [afficherErreurs, setAfficherErreurs] = useState(false)
   const [envoi, setEnvoi] = useState<{ enCours: boolean; erreur: string | null }>({ enCours: false, erreur: null })
 
@@ -146,15 +160,21 @@ function FormulairePassagers({
     sessionStockage().ecrire(cle, JSON.stringify(brouillon))
   }, [cle, brouillon])
 
-  const offre = meilleureOffre(
-    inventaire.classes,
-    familleCode,
-    criteres.passagers,
-    traversee.capaciteVendable,
-    inventaire.occupation,
+  const offres = segments.map((sg) =>
+    meilleureOffre(
+      sg.inventaire.classes,
+      sg.familleCode,
+      criteres.passagers,
+      sg.inventaire.traversee.capaciteVendable,
+      sg.inventaire.occupation,
+    ),
   )
-  const retourResultats = `/resultats?${versParametres(criteres)}`
-  if (!offre.disponible) {
+  const retourResultats =
+    segments.length > 1
+      ? `/resultats?${versParametres(criteres)}&t=${encodeURIComponent(traversee.id)}&f=${segments[0].familleCode}`
+      : `/resultats?${versParametres(criteres)}`
+  const offresDisponibles = offres.filter((o): o is Extract<typeof o, { disponible: true }> => o.disponible)
+  if (offresDisponibles.length !== offres.length) {
     return (
       <ParcoursInterrompu
         message="Ce tarif n’est plus disponible pour ce nombre de passagers. Choisissez un autre tarif ou une autre date."
@@ -164,13 +184,21 @@ function FormulairePassagers({
   }
 
   const erreursContact = validerContact(brouillon)
+  // Catégorie vérifiée à la date de chaque trajet (un enfant peut avoir 12 ans entre l'aller et le retour).
   const erreursPassagers: ErreursPassager[] = brouillon.passagers.map((p) =>
-    validerPassager(p, jourVoyage, config.bornesAge),
+    joursVoyage.map((j) => validerPassager(p, j, config.bornesAge)).find((e) => Object.keys(e).length > 0) ?? {},
   )
   const valide =
     Object.keys(erreursContact).length === 0 && erreursPassagers.every((e) => Object.keys(e).length === 0)
-  const sousTitre = `${criteres.depart} → ${criteres.arrivee} · ${formatJourCourt(jourVoyage)} · ${heureLocale(traversee.departAt)}`
-  const nomFamille = familles.find((f) => f.code === familleCode)?.nom ?? familleCode
+  const sousTitre =
+    segments.length > 1
+      ? `${criteres.depart} ⇄ ${criteres.arrivee} · ${formatJourCourt(jourVoyage)} → ${formatJourCourt(joursVoyage[1])}`
+      : `${criteres.depart} → ${criteres.arrivee} · ${formatJourCourt(jourVoyage)} · ${heureLocale(traversee.departAt)}`
+  const total = offresDisponibles.reduce((s, o) => s + o.total, 0)
+  const libelleTarif =
+    segments.length > 1
+      ? "Aller + retour"
+      : (familles.find((f) => f.code === segments[0].familleCode)?.nom ?? segments[0].familleCode)
 
   const modifierPassager = (index: number, champ: keyof SaisiePassager, valeur: string) =>
     setBrouillon((b) => ({
@@ -187,19 +215,22 @@ function FormulairePassagers({
     }
     setEnvoi({ enCours: true, erreur: null })
     const resultat = await serviceReservation.bloquer({
-      traverseeId: traversee.id,
-      familleCode,
+      segments: segments.map((sg, i) => ({
+        traverseeId: sg.inventaire.traversee.id,
+        familleCode: sg.familleCode,
+        totalAffiche: offresDisponibles[i]?.total ?? 0,
+      })),
       passagers: brouillon.passagers,
       telephone: brouillon.telephone,
       email: brouillon.email,
-      totalAffiche: offre.disponible ? offre.total : 0,
+      clientId: clientId ?? null,
     })
     if (!resultat.ok) {
       setEnvoi({ enCours: false, erreur: resultat.message })
       return
     }
-    const { reservation, prixModifie } = resultat.valeur
-    router.push(`/paiement/${reservation.id}${prixModifie ? "?prix=modifie" : ""}`)
+    const { commande, prixModifie } = resultat.valeur
+    router.push(`/paiement/${commande.id}${prixModifie ? "?prix=modifie" : ""}`)
   }
 
   return (
@@ -272,10 +303,8 @@ function FormulairePassagers({
 
       <BarreBasse>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm text-gris">
-            {nomFamille} · Total
-          </p>
-          <p className="font-titre text-[20px] font-bold tabular-nums text-marine">{formatFCFA(offre.total)}</p>
+          <p className="truncate text-sm text-gris">{libelleTarif} · Total</p>
+          <p className="font-titre text-[20px] font-bold tabular-nums text-marine">{formatFCFA(total)}</p>
         </div>
         <Bouton taille="grand" className="min-w-40" onClick={continuer} disabled={envoi.enCours}>
           {envoi.enCours ? "Blocage…" : "Continuer"}

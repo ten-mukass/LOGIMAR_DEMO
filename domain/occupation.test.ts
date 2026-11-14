@@ -18,6 +18,7 @@ function passager(categorie: Passager["categorie"]): Passager {
 function reservation(partiel: Partial<Reservation>): Reservation {
   return {
     id: "r",
+    commandeId: null,
     reference: "LGM-AAAAA",
     traverseeId: "T1",
     familleCode: "ECO",

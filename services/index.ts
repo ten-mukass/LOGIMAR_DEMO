@@ -7,7 +7,10 @@ import type { Operateur, PaymentProvider } from "./paiement/payment-provider"
 import { SimulatedProvider } from "./paiement/simulated-provider"
 import { DemoRepository } from "./repository/demo-repository"
 import type { Repository } from "./repository/repository"
+import { LocalAuthService } from "./auth/local-auth-service"
+import { ServiceBillets } from "./billets/service-billets"
 import { maintenant } from "./horloge"
+import { PreviewNotificationService } from "./notification/preview-notification-service"
 import { ServiceReservation } from "./reservation/service-reservation"
 import { stockageNavigateur } from "./stockage"
 
@@ -34,16 +37,33 @@ function operateurSimule(code: Operateur): PaymentProvider {
   })
 }
 
+const genererId = () => crypto.randomUUID()
+
+export const notifications = new PreviewNotificationService(repository, maintenant, genererId)
+
 export const serviceReservation = new ServiceReservation({
   repository,
   operateurs: { airtel: operateurSimule("airtel"), moov: operateurSimule("moov") },
+  notifications,
   horloge: maintenant,
   aleatoire: aleatoireCrypto,
-  genererId: () => crypto.randomUUID(),
+  genererId,
 })
+
+export const auth = new LocalAuthService({
+  repository,
+  notifications,
+  stockage,
+  horloge: maintenant,
+  aleatoire: aleatoireCrypto,
+  genererId,
+})
+
+export const billets = new ServiceBillets({ repository, auth, stockage })
 
 /** Clé de signature des QR codes (démo : publique ; production : signature côté serveur). */
 export const cleSignatureBillet = seed.cleSignatureBilletDemo
 
 export type { FiltreTraversees, Inventaire, Referentiel, Repository } from "./repository/repository"
-export type { DemandeBlocage, Resultat } from "./reservation/service-reservation"
+export type { CommandeDetaillee, DemandeBlocage, Resultat } from "./reservation/service-reservation"
+export type { EtatSession } from "./auth/auth-service"
