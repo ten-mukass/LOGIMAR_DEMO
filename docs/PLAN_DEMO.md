@@ -49,7 +49,7 @@ Besoin exprimé le 18/11/2026 : le contrôleur scanne le QR du billet ; si le sc
 | Élément | Démo | Production |
 |---|---|---|
 | Écran `/scan` | Mobile d'abord, protégé par le code de démonstration ; choix de la traversée, compteur à bord / attendus | Application installable (PWA), comptes d'agents d'embarquement |
-| Lecture du QR | Caméra du téléphone (BarcodeDetector si disponible, sinon jsQR), photo du QR, recherche manuelle par référence ou nom ; bouton démo « simuler le scan » des billets de l'appareil | Idem, hors ligne |
+| Lecture du QR | Caméra du téléphone (lecteur intégré BarcodeDetector si disponible, sinon décodeur jsQR : iPhone compris), photo du QR, recherche manuelle par référence ou nom ; bouton démo « simuler le scan » | Idem, hors ligne |
 | Contrôle | Signature du QR (`verifierQrBillet`), billet payé, bonne traversée, pas déjà utilisé, embarquement non clos | Idem, avec la liste de la traversée téléchargée avant le départ |
 | Résultats | Valide (passagers à contrôler avec leur pièce), déjà scanné (heure du premier scan), autre traversée, non valable (annulé, non payé), invalide (illisible ou falsifié), embarquement clos | Idem |
 | Billet utilisé une fois | Un scan valide embarque tous les passagers du billet ; un second scan donne « déjà scanné ». Correction possible passager par passager (« retirer du bord ») | Synchronisation sans doublon entre appareils |
