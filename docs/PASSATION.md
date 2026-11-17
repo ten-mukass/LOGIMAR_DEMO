@@ -18,7 +18,7 @@
 | 2 | Parcours aller simple jusqu'au billet | Fusionnée (PR #3), en production |
 | 3 | Aller-retour, PDF, e-mails, Mes billets, compte, Aide | Fusionnée (PR #4, `ab4d1fd`), en production |
 | 4 | Back-office | Fusionnée (PR #5), en production ; correctif du billet PDF fusionné à part (PR #6) |
-| 5 | Embarquement : scan du QR, manifeste de bord | Fait sur `demo-v1` ; PR à relire (voir ci-dessous) |
+| 5 | Embarquement : scan du QR, manifeste de bord | PR #7 ouverte, en attente de relecture et de fusion |
 | 6 | Recette | À faire |
 
 ### Étape 3 : contenu
@@ -92,7 +92,7 @@ Besoin : le contrôleur scanne le QR du billet, le passager monte si le scan est
 
 ## Étapes suivantes (rappel de `docs/PLAN_DEMO.md`)
 
-- **5 — Embarquement** : fait ; PR à relire. Ne pas pousser l'étape 6 sur `demo-v1` avant sa fusion.
+- **5 — Embarquement** : PR #7 ouverte. Ne pas pousser l'étape 6 sur `demo-v1` avant sa fusion.
 - **6 — Recette** : tablette et ordinateur, accessibilité, console, scénario de présentation dans le README.
 
 ## Points à confirmer par LOGIMAR
