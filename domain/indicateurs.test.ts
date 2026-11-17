@@ -18,7 +18,7 @@ import {
   rythmeReservation,
   statutAffiche,
 } from "./indicateurs"
-import { compterParCategorie, filtrerReservations, FILTRE_VIDE, manifeste, manifesteCsv } from "./manifeste"
+import { compterParCategorie, filtrerReservations, FILTRE_VIDE, passagersPayes, passagersPayesCsv } from "./manifeste"
 import type { Passager, Reservation, Traversee } from "./types"
 
 const maintenant = new Date("2026-11-14T12:00:00+01:00")
@@ -267,7 +267,7 @@ describe("réservations et manifeste", () => {
   })
 
   it("liste les passagers payés de la traversée, par ordre alphabétique", () => {
-    const lignes = manifeste(toutes, "T1", maintenant)
+    const lignes = passagersPayes(toutes, "T1", maintenant)
     expect(lignes.map((l) => `${l.numero} ${l.nom} ${l.prenom}`)).toEqual([
       "1 ABOGO Marie",
       "2 NDONG Élodie",
@@ -279,7 +279,7 @@ describe("réservations et manifeste", () => {
   })
 
   it("exporte le manifeste en CSV pour Excel", () => {
-    const csv = manifesteCsv(manifeste([a], "T1", maintenant), ["Traversée ; test"])
+    const csv = passagersPayesCsv(passagersPayes([a], "T1", maintenant), ["Traversée ; test"])
     const lignes = csv.split("\r\n")
     expect(csv.startsWith("﻿")).toBe(true)
     expect(lignes[0]).toBe('﻿"Traversée ; test"')

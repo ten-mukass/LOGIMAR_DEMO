@@ -25,7 +25,7 @@ export function afficheNavigation(chemin: string): boolean {
   return liensNavigation.some((l) => l.href === rubriqueActive(chemin))
 }
 
-/** Le back-office a sa propre navigation, à la place de celle du site client. */
+/** Le back-office et l'embarquement ont leur propre navigation, à la place de celle du site client. */
 export function estEspaceGestion(chemin: string): boolean {
-  return chemin === "/admin" || chemin.startsWith("/admin/")
+  return ["/admin", "/scan"].some((racine) => chemin === racine || chemin.startsWith(`${racine}/`))
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { ExternalLink, LayoutDashboard, LockKeyhole, LogOut, Ship, Ticket } from "lucide-react"
+import { ExternalLink, LayoutDashboard, LockKeyhole, LogOut, ScanLine, Ship, Ticket } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useEffect, useState, type ReactNode } from "react"
@@ -14,14 +14,15 @@ const LIENS = [
   { href: "/admin", libelle: "Tableau de bord", icone: LayoutDashboard },
   { href: "/admin/traversees", libelle: "Traversées", icone: Ship },
   { href: "/admin/reservations", libelle: "Réservations", icone: Ticket },
+  { href: "/scan", libelle: "Embarquement", icone: ScanLine },
 ]
 
 function actif(chemin: string, href: string): boolean {
   return href === "/admin" ? chemin === "/admin" : chemin === href || chemin.startsWith(`${href}/`)
 }
 
-/** Back-office : écran de code d'accès, puis en-tête et navigation propres à la gestion. */
-export function CadreGestion({ children }: { children: ReactNode }) {
+/** Écran de code d'accès tant que la session de gestion n'est pas ouverte (back-office et embarquement). */
+export function GardeGestion({ children }: { children: (seDeconnecter: () => Promise<void>) => ReactNode }) {
   const [connecte, setConnecte] = useState<boolean | null>(null)
 
   useEffect(() => {
@@ -36,15 +37,27 @@ export function CadreGestion({ children }: { children: ReactNode }) {
 
   if (connecte === null) return <main className="min-h-[60dvh]" />
   if (!connecte) return <Connexion onConnecte={() => setConnecte(true)} />
+  return children(async () => {
+    await accesGestion.deconnecter()
+    setConnecte(false)
+  })
+}
+
+/** Back-office : écran de code d'accès, puis en-tête et navigation propres à la gestion. */
+export function CadreGestion({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-dvh bg-ecume">
-      <EnTeteGestion onDeconnexion={() => setConnecte(false)} />
-      <main className="mx-auto max-w-[1440px] space-y-5 px-4 py-6 md:px-6 print:max-w-none print:p-0">{children}</main>
-    </div>
+    <GardeGestion>
+      {(seDeconnecter) => (
+        <div className="min-h-dvh bg-ecume">
+          <EnTeteGestion onDeconnexion={seDeconnecter} />
+          <main className="mx-auto max-w-[1440px] space-y-5 px-4 py-6 md:px-6 print:max-w-none print:p-0">{children}</main>
+        </div>
+      )}
+    </GardeGestion>
   )
 }
 
-function EnTeteGestion({ onDeconnexion }: { onDeconnexion: () => void }) {
+function EnTeteGestion({ onDeconnexion }: { onDeconnexion: () => Promise<void> }) {
   const chemin = usePathname()
   return (
     <header className="bg-marine text-white print:hidden">
@@ -85,10 +98,7 @@ function EnTeteGestion({ onDeconnexion }: { onDeconnexion: () => void }) {
           </Link>
           <button
             type="button"
-            onClick={async () => {
-              await accesGestion.deconnecter()
-              onDeconnexion()
-            }}
+            onClick={() => void onDeconnexion()}
             className="inline-flex min-h-10 items-center gap-1.5 rounded-champ border border-white/40 px-3 text-[14px] font-semibold hover:bg-white/10"
           >
             <LogOut aria-hidden className="size-4" />

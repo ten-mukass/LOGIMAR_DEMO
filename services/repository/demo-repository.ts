@@ -11,6 +11,9 @@ import { appliquerGrille, placesNecessaires, placesRestantesTraversee, type Occu
 import type {
   ChangementPalier,
   ClasseReservation,
+  ClotureEmbarquement,
+  Embarquement,
+  ScanEmbarquement,
   Client,
   CodeFamille,
   CodeVerification,
@@ -53,6 +56,10 @@ interface DonneesLocales {
   compteursFactures: Record<string, number>
   /** Back-office : ouvertures et fermetures manuelles de paliers. */
   changementsPaliers: ChangementPalier[]
+  /** Embarquement : passagers à bord, journal des contrôles, clôtures. */
+  embarquements: Embarquement[]
+  scans: ScanEmbarquement[]
+  cloturesEmbarquement: ClotureEmbarquement[]
 }
 
 const CLE = "logimar-demo:v2:donnees"
@@ -66,6 +73,9 @@ const VIDE: DonneesLocales = {
   codes: [],
   compteursFactures: {},
   changementsPaliers: [],
+  embarquements: [],
+  scans: [],
+  cloturesEmbarquement: [],
 }
 
 /** Remplace l'élément de même id, ou l'ajoute. */
@@ -222,6 +232,44 @@ export class DemoRepository implements Repository {
 
   async getParametresGestion(): Promise<ParametresGestion> {
     return this.seed.gestion.parametres
+  }
+
+  async listerEmbarquements(traverseeId: string): Promise<Embarquement[]> {
+    return this.locales().embarquements.filter((e) => e.traverseeId === traverseeId)
+  }
+
+  async enregistrerEmbarquements(embarquements: Embarquement[]): Promise<void> {
+    this.modifier((d) => {
+      const ajouts = embarquements.filter(
+        (e, i) =>
+          !d.embarquements.some((x) => x.traverseeId === e.traverseeId && x.passagerId === e.passagerId) &&
+          embarquements.findIndex((x) => x.traverseeId === e.traverseeId && x.passagerId === e.passagerId) === i,
+      )
+      return { ...d, embarquements: [...d.embarquements, ...ajouts] }
+    })
+  }
+
+  async supprimerEmbarquement(id: string): Promise<void> {
+    this.modifier((d) => ({ ...d, embarquements: d.embarquements.filter((e) => e.id !== id) }))
+  }
+
+  async listerScans(traverseeId: string): Promise<ScanEmbarquement[]> {
+    return this.locales().scans.filter((s) => s.traverseeId === traverseeId)
+  }
+
+  async enregistrerScan(scan: ScanEmbarquement): Promise<void> {
+    this.modifier((d) => ({ ...d, scans: [...d.scans, scan] }))
+  }
+
+  async getClotureEmbarquement(traverseeId: string): Promise<ClotureEmbarquement | null> {
+    return this.locales().cloturesEmbarquement.find((c) => c.traverseeId === traverseeId) ?? null
+  }
+
+  async definirClotureEmbarquement(traverseeId: string, cloture: ClotureEmbarquement | null): Promise<void> {
+    this.modifier((d) => ({
+      ...d,
+      cloturesEmbarquement: [...d.cloturesEmbarquement.filter((c) => c.traverseeId !== traverseeId), ...(cloture ? [cloture] : [])],
+    }))
   }
 
   async getReservation(id: string): Promise<Reservation | null> {
