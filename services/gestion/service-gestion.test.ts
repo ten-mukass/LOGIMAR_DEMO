@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest"
 import { seed } from "@/data/seed"
 import { generateur } from "@/domain/aleatoire"
 import { calculerIndicateurs, estVendue } from "@/domain/indicateurs"
-import { manifeste } from "@/domain/manifeste"
+import { passagersPayes } from "@/domain/manifeste"
 import { occupeDesPlaces, placesReservation } from "@/domain/occupation"
 import { meilleureOffre } from "@/domain/tarifs"
 import { PreviewNotificationService } from "../notification/preview-notification-service"
@@ -100,7 +100,7 @@ describe("mêmes chiffres que le site client", () => {
     expect(faite?.statut).toBe("emise")
     expect(apres.locales.has(id)).toBe(true)
     expect(calculerIndicateurs(apres.traversees, apres.reservations, instant).places).toBe(placesAvant + 1)
-    expect(manifeste(apres.reservations, TRAVERSEE, instant).some((l) => l.nom === "MBA" && l.prenom === "Paul")).toBe(true)
+    expect(passagersPayes(apres.reservations, TRAVERSEE, instant).some((l) => l.nom === "MBA" && l.prenom === "Paul")).toBe(true)
   })
 })
 

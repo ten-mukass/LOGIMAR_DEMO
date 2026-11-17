@@ -9,6 +9,7 @@ import { DemoRepository } from "./repository/demo-repository"
 import type { Repository } from "./repository/repository"
 import { LocalAuthService } from "./auth/local-auth-service"
 import { ServiceBillets } from "./billets/service-billets"
+import { ServiceEmbarquement } from "./embarquement/service-embarquement"
 import { CodeDemoAccesGestion, type AccesGestion } from "./gestion/acces-gestion"
 import { ServiceGestion } from "./gestion/service-gestion"
 import { maintenant } from "./horloge"
@@ -73,6 +74,15 @@ export const accesGestion: AccesGestion = new CodeDemoAccesGestion({
 
 export const serviceGestion = new ServiceGestion({ repository, horloge: maintenant, genererId, auteur: seed.gestion.auteurDemo })
 
+/** Embarquement : contrôle des billets à la passerelle et manifeste de bord. */
+export const serviceEmbarquement = new ServiceEmbarquement({
+  repository,
+  horloge: maintenant,
+  genererId,
+  cleSignature: seed.cleSignatureBilletDemo,
+  agent: seed.gestion.auteurDemo,
+})
+
 /** Clé de signature des QR codes (démo : publique ; production : signature côté serveur). */
 export const cleSignatureBillet = seed.cleSignatureBilletDemo
 
@@ -80,3 +90,4 @@ export type { FiltreTraversees, Inventaire, Referentiel, Repository } from "./re
 export type { CommandeDetaillee, DemandeBlocage, Resultat } from "./reservation/service-reservation"
 export type { EtatSession } from "./auth/auth-service"
 export type { EtatVentes, ResultatGestion } from "./gestion/service-gestion"
+export type { EtatEmbarquement, ResultatControleBillet } from "./embarquement/service-embarquement"

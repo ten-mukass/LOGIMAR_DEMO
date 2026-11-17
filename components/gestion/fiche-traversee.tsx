@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowLeft, ExternalLink, FileText, Ticket } from "lucide-react"
+import { ArrowLeft, ExternalLink, FileText, ScanLine, Ticket } from "lucide-react"
 import Link from "next/link"
 import { Fragment, useMemo, useState } from "react"
 import { Bouton, classesBouton } from "@/components/ui/bouton"
@@ -132,7 +132,11 @@ export function FicheTraversee({ id }: { id: string }) {
             </Link>
             <Link href={`/admin/traversees/${t.id}/manifeste`} className={classesBouton({ variante: "contour", taille: "compact" })}>
               <FileText aria-hidden className="size-4" />
-              Manifeste
+              Manifeste de bord
+            </Link>
+            <Link href={`/scan?t=${t.id}`} className={classesBouton({ variante: "contour", taille: "compact" })}>
+              <ScanLine aria-hidden className="size-4" />
+              Embarquement
             </Link>
             <Link href={`/admin/reservations?traversee=${t.id}`} className={classesBouton({ variante: "contour", taille: "compact" })}>
               <Ticket aria-hidden className="size-4" />

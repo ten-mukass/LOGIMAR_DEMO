@@ -329,3 +329,48 @@ export interface ChangementPalier {
   auteur: string
   le: string
 }
+
+/** Comment un billet a été contrôlé à l'embarquement. */
+export type ModeControle = "scan" | "manuel"
+
+/**
+ * Passager monté à bord (CAHIER_DES_CHARGES_GESTION §3.5 ; `embarque_at` du modèle de la phase 1).
+ * Un enregistrement par passager : le manifeste de bord est la liste de ces enregistrements.
+ */
+export interface Embarquement {
+  id: string
+  traverseeId: string
+  reservationId: string
+  passagerId: string
+  reference: string
+  mode: ModeControle
+  /** Démo : libellé fixe (pas de comptes) ; production : l'agent d'embarquement connecté. */
+  agent: string
+  embarqueLe: string
+}
+
+export type ResultatControle =
+  | "valide"
+  | "deja-scanne"
+  | "autre-traversee"
+  | "non-valable"
+  | "invalide"
+  | "embarquement-clos"
+
+/** Journal de chaque contrôle à l'embarquement, quel qu'en soit le résultat (ScanEmbarquement du cahier des charges). */
+export interface ScanEmbarquement {
+  id: string
+  traverseeId: string
+  reference: string | null
+  resultat: ResultatControle
+  mode: ModeControle
+  agent: string
+  le: string
+}
+
+/** Fin de l'embarquement d'une traversée : plus de contrôle possible, les passagers non embarqués sont absents. */
+export interface ClotureEmbarquement {
+  traverseeId: string
+  agent: string
+  le: string
+}

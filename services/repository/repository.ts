@@ -10,6 +10,9 @@ import type { Societe } from "@/data/seed/societe"
 import type {
   Agence,
   ChangementPalier,
+  ClotureEmbarquement,
+  Embarquement,
+  ScanEmbarquement,
   ClasseReservation,
   Client,
   CodeFamille,
@@ -87,6 +90,19 @@ export interface Repository {
   /** Enregistre l'ouverture ou la fermeture d'un palier : listerInventaires en tient compte aussitôt. */
   enregistrerChangementPalier(changement: ChangementPalier): Promise<void>
   getParametresGestion(): Promise<ParametresGestion>
+
+  /** Embarquement : passagers montés à bord d'une traversée (le manifeste de bord). */
+  listerEmbarquements(traverseeId: string): Promise<Embarquement[]>
+  /** Ajoute des passagers à bord ; un passager déjà à bord sur cette traversée n'est pas ajouté deux fois. */
+  enregistrerEmbarquements(embarquements: Embarquement[]): Promise<void>
+  /** Correction : retire un passager du bord. */
+  supprimerEmbarquement(id: string): Promise<void>
+  /** Journal des contrôles, du plus ancien au plus récent. */
+  listerScans(traverseeId: string): Promise<ScanEmbarquement[]>
+  enregistrerScan(scan: ScanEmbarquement): Promise<void>
+  getClotureEmbarquement(traverseeId: string): Promise<ClotureEmbarquement | null>
+  /** Clôture l'embarquement, ou le rouvre avec null. */
+  definirClotureEmbarquement(traverseeId: string, cloture: ClotureEmbarquement | null): Promise<void>
 
   getReservation(id: string): Promise<Reservation | null>
   trouverReservationParReference(reference: string): Promise<Reservation | null>

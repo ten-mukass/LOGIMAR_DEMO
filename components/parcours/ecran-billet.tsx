@@ -7,7 +7,9 @@ import { useCallback, useState } from "react"
 import { Logo } from "@/components/site/logo"
 import { Segmente } from "@/components/ui/segmente"
 import { classesBouton } from "@/components/ui/bouton"
+import { billetUtilise, premierEmbarquement } from "@/domain/embarquement"
 import { formatFCFA } from "@/domain/format"
+import { formatJourCourt, heureLocale, jourLocal } from "@/domain/temps"
 import { telecharger } from "@/lib/telecharger"
 import { useDonnees } from "@/lib/use-donnees"
 import { cn } from "@/lib/utils"
@@ -24,8 +26,15 @@ export function EcranBillet({ reference }: { reference: string }) {
     const documents = await documentsDepuisReference(repository, reference, cleSignatureBillet)
     if (!documents || documents.billets.length === 0) return null
     const envois = documents.commande ? await repository.listerEnvois({ commandeId: documents.commande.id }) : []
+    // Billet utilisé : tous ses passagers sont passés à bord (le QR n'est plus valable).
+    const utilises = new Map<string, string>()
+    for (const r of documents.reservations) {
+      const embarquements = (await repository.listerEmbarquements(r.traverseeId)).filter((e) => e.reservationId === r.id)
+      const premier = premierEmbarquement(embarquements)
+      if (premier && billetUtilise(r, embarquements)) utilises.set(r.reference, premier.embarqueLe)
+    }
     const session = await auth.session()
-    return { autorise: true as const, documents, envoi: envois.at(-1) ?? null, connecte: session !== null }
+    return { autorise: true as const, documents, envoi: envois.at(-1) ?? null, connecte: session !== null, utilises }
   }, [reference])
   const { donnees } = useDonnees(charger)
   const [indexChoisi, setIndexChoisi] = useState<number | null>(null)
@@ -52,7 +61,7 @@ export function EcranBillet({ reference }: { reference: string }) {
     )
   }
 
-  const { documents, envoi, connecte } = donnees
+  const { documents, envoi, connecte, utilises } = donnees
   const { commande, reservations } = documents
   const indexReference = Math.max(0, documents.billets.findIndex((b) => b.reference === reference))
   const index = indexChoisi ?? indexReference
@@ -102,7 +111,7 @@ export function EcranBillet({ reference }: { reference: string }) {
           />
         )}
 
-        <CarteBillet billet={billet} />
+        <CarteBillet billet={billet} utiliseLe={utilises.get(billet.reference) ?? null} />
 
         <p className="text-center text-sm text-white/85">
           Payé {formatFCFA(total)}
@@ -171,7 +180,7 @@ export function EcranBillet({ reference }: { reference: string }) {
   )
 }
 
-function CarteBillet({ billet }: { billet: DonneesBilletPdf }) {
+function CarteBillet({ billet, utiliseLe }: { billet: DonneesBilletPdf; utiliseLe: string | null }) {
   return (
     <article aria-label={`Billet ${billet.reference}`} className="overflow-hidden rounded-billet bg-white text-encre">
       <div className="flex items-center justify-between gap-3 bg-bleu-pale px-4 py-3">
@@ -225,10 +234,21 @@ function CarteBillet({ billet }: { billet: DonneesBilletPdf }) {
       </div>
 
       <div className="px-4 pb-5">
-        <div className="flex justify-center">
-          <CodeQr contenu={billet.qr} libelle={`QR code du billet ${billet.reference}`} taille={190} />
+        <div className="relative flex justify-center">
+          <div className={cn(utiliseLe && "opacity-25")}>
+            <CodeQr contenu={billet.qr} libelle={`QR code du billet ${billet.reference}`} taille={190} />
+          </div>
+          {utiliseLe && (
+            <p className="absolute inset-x-0 top-1/2 mx-auto w-fit -translate-y-1/2 -rotate-6 rounded-champ border-2 border-foret-texte bg-white px-3 py-1.5 text-center font-titre text-[16px] font-extrabold text-foret-texte">
+              Billet utilisé
+            </p>
+          )}
         </div>
-        <p className="mt-2 text-center text-sm text-gris">À présenter avec une pièce d’identité pour chaque passager.</p>
+        <p className="mt-2 text-center text-sm text-gris">
+          {utiliseLe
+            ? `Passagers embarqués le ${formatJourCourt(jourLocal(utiliseLe)).toLowerCase()} à ${heureLocale(utiliseLe)} : ce QR code n’est plus valable.`
+            : "À présenter avec une pièce d’identité pour chaque passager."}
+        </p>
         <ul className="mt-4 divide-y divide-bordure border-t border-bordure">
           {billet.passagers.map((p) => (
             <li key={p.nom + p.detail} className="flex justify-between gap-3 py-2 text-[15px]">

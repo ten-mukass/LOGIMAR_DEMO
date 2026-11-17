@@ -1,6 +1,6 @@
 # Passation — démonstration LOGIMAR 241
 
-État au 14 novembre 2026 (fin de l'étape 4).
+État au 18 novembre 2026 (fin de l'étape 5).
 
 ## Où sont les choses
 
@@ -17,8 +17,8 @@
 | 1 | Fondations, Accueil, Horaires | Fusionnée (PR #2), en production |
 | 2 | Parcours aller simple jusqu'au billet | Fusionnée (PR #3), en production |
 | 3 | Aller-retour, PDF, e-mails, Mes billets, compte, Aide | Fusionnée (PR #4, `ab4d1fd`), en production |
-| 4 | Back-office | PR #5 ouverte, en attente de relecture et de fusion |
-| 5 | Scan (facultatif) | À faire |
+| 4 | Back-office | Fusionnée (PR #5), en production ; correctif du billet PDF fusionné à part (PR #6) |
+| 5 | Embarquement : scan du QR, manifeste de bord | Fait sur `demo-v1` ; PR à relire (voir ci-dessous) |
 | 6 | Recette | À faire |
 
 ### Étape 3 : contenu
@@ -47,6 +47,21 @@
 - Vérifié dans le navigateur (1440 px et tablette 768 px) : connexion, tableau de bord, filtres, fiche, fermeture et réouverture d'un palier, réservation faite sur le site visible au back-office et au manifeste ; console sans erreur. 139 tests, lint et build OK.
 - Non fait (hors périmètre de la démo) : calendrier mensuel, modification du prix ou du quota d'un palier, éditeur de grille, règles et simulation, paiements et rapprochement, ventes en agence, export Excel natif.
 
+### Étape 5 : contenu (embarquement, demandé le 18/11/2026)
+
+Besoin : le contrôleur scanne le QR du billet, le passager monte si le scan est validé, le billet n'est plus valable ensuite, et le **manifeste de bord** (personnes réellement à bord) se remplit au fil des scans ; la liste des billets payés est une liste distincte. Plan détaillé : `docs/PLAN_DEMO.md`, « Étape 5 ».
+
+- Écran **`/scan`** (mobile d'abord, même code d'accès que la gestion, lien « Embarquement » dans la gestion et sur la fiche traversée) : choix de la traversée (celles du jour, puis les prochaines), compteur « N à bord sur M attendus », scan par la caméra, photo du QR, recherche manuelle (référence, nom, téléphone, e-mail), journal des derniers contrôles, clôture et réouverture.
+- **Contrôle** (`domain/embarquement.ts`, fonctions pures testées) : signature du QR (`verifierQrBillet`), billet payé, bonne traversée, pas déjà utilisé, embarquement non clos. Résultats : valide, déjà scanné (avec l'heure du premier passage), autre traversée, non valable, refusé (falsifié, illisible, inconnu), embarquement clos.
+- **Billet utilisé une fois** : un scan valide fait monter tout de suite tous les passagers du billet ; le scan suivant donne « déjà utilisé ». « Retirer du bord » corrige une erreur passager par passager. La caméra ignore le même QR pendant 5 s (elle le voit plusieurs fois par seconde).
+- **Données** : `Embarquement` (un par passager à bord), `ScanEmbarquement` (journal), `ClotureEmbarquement` ; stockés dans `logimar-demo:v2:donnees` ; `Repository` : `listerEmbarquements`, `enregistrerEmbarquements` (sans doublon), `supprimerEmbarquement`, `listerScans`, `enregistrerScan`, `getClotureEmbarquement`, `definirClotureEmbarquement`. Service : `services/embarquement/service-embarquement.ts`.
+- **Back-office** (`/admin/traversees/[id]/manifeste`) : onglet **Manifeste de bord** (passagers scannés, ordre et heure de passage, mode de contrôle) et onglet **Billets vendus** (passagers payés : à embarquer, embarqué, absent après clôture) ; export CSV et impression des deux ; mise à jour automatique quand un scan est fait dans un autre onglet.
+- **Billet du client** : tampon « Billet utilisé » et QR grisé une fois tous ses passagers embarqués.
+- **Démonstration sur un seul appareil** : panneau « Démonstration : simuler un scan » (billets de l'appareil, billet d'exemple, billet falsifié, billet d'une autre traversée) ; le QR est fabriqué comme sur le billet du client et passe par le même contrôle.
+- Vérifié dans le navigateur (téléphone 375 px, tablette, ordinateur) : scan valide, second scan refusé, falsifié refusé, autre traversée, billet de groupe (4 passagers), contrôle manuel, clôture (absents) et réouverture, manifeste de bord et billets vendus, tampon sur le billet du client ; console sans erreur. 158 tests, lint et build OK.
+- **Non vérifié** : la caméra elle-même (pas de caméra dans le navigateur intégré) ; à essayer sur un téléphone Android avec Chrome, sur la Preview (https).
+- **Limite** : la lecture du QR utilise le lecteur intégré au navigateur (`BarcodeDetector`) : Chrome et Edge sur Android, Chrome sur ordinateur ; **pas Safari sur iPhone**. L'ajout du décodeur `jsqr` (open source) a été refusé par les permissions de la session ; point d'accroche prêt dans `lib/lecture-qr.ts`. Sur iPhone, la recherche manuelle reste disponible.
+
 ## Méthode de travail (validée)
 
 - Une PR par étape depuis `demo-v1` ; l'utilisateur relit la Preview et fusionne par *merge commit*. **Ne jamais pousser l'étape suivante tant que la PR précédente est ouverte** (les commits s'ajouteraient à cette PR) : commiter en local et surveiller `git ls-remote origin main`.
@@ -60,8 +75,8 @@
 
 - `domain/` : types et fonctions pures (temps, programme, tarifs par paliers, occupation, passagers, contact, montants, recherche, références, messages) + tests.
 - `data/seed/` : toutes les données d'exemple ; ventes générées de façon déterministe (`ventes.ts`).
-- `services/` : `index.ts` choisit les implémentations. `Repository` → `DemoRepository` (seed + `localStorage`, clé `logimar-demo:v2:donnees`) ; `PaymentProvider` → `SimulatedProvider` (4 s, refus si le numéro finit par `0000`) ; `NotificationService` → `PreviewNotificationService` ; `AuthService` → `LocalAuthService` ; `AccesGestion` → `CodeDemoAccesGestion` (clé `logimar-demo:v2:gestion-session`) ; `ServiceReservation` ; `ServiceBillets` ; `ServiceGestion` (lecture groupée des ventes, réglage des paliers) ; documents (QR signé, PDF).
-- `components/` : `ui/`, `site/`, `accueil/`, `horaires/`, `parcours/`, `compte/`, `gestion/` (back-office). `app/` : routes, dont `app/admin/`. `lib/use-etat-ventes.ts` relit les ventes toutes les 30 s, au retour sur l'onglet et quand un autre onglet modifie les données.
+- `services/` : `index.ts` choisit les implémentations. `Repository` → `DemoRepository` (seed + `localStorage`, clé `logimar-demo:v2:donnees`) ; `PaymentProvider` → `SimulatedProvider` (4 s, refus si le numéro finit par `0000`) ; `NotificationService` → `PreviewNotificationService` ; `AuthService` → `LocalAuthService` ; `AccesGestion` → `CodeDemoAccesGestion` (clé `logimar-demo:v2:gestion-session`) ; `ServiceReservation` ; `ServiceBillets` ; `ServiceGestion` (lecture groupée des ventes, réglage des paliers) ; `ServiceEmbarquement` (contrôle des billets, manifeste de bord, clôture) ; documents (QR signé, PDF).
+- `components/` : `ui/`, `site/`, `accueil/`, `horaires/`, `parcours/`, `compte/`, `gestion/` (back-office), `embarquement/` (écran de scan). `app/` : routes, dont `app/admin/` et `app/scan/`. `lib/lecture-qr.ts` : lecture des QR (caméra, photo). `lib/use-etat-ventes.ts` relit les ventes toutes les 30 s, au retour sur l'onglet et quand un autre onglet modifie les données.
 
 ## Pièges connus
 
@@ -72,13 +87,14 @@
 - Back-office : une vente d'exemple prévue dans un palier qui était fermé au moment de son achat n'a pas lieu (elle n'est pas reportée sur un autre palier). Les ventes déjà faites avant la fermeture restent.
 - Back-office : le titre d'une page placée dans le même segment qu'un `layout` n'hérite pas du modèle de titre de ce layout (d'où `title.absolute` sur `/admin`).
 - Le code d'accès est dans le code envoyé au navigateur : il protège l'écran, pas les données (toutes les données de la démo sont dans le navigateur).
+- Embarquement : la caméra exige https (ou localhost) ; la démo partage les embarquements entre onglets du même navigateur seulement (deux téléphones ne se voient pas : en production, synchronisation serveur sans doublon).
+- Outil de prévisualisation : il lit `.claude/launch.json` dans le dossier de la session ; une copie existe dans le dépôt, ignorée par git (`.git/info/exclude`).
 
 ## Étapes suivantes (rappel de `docs/PLAN_DEMO.md`)
 
-- **4 — Back-office** : PR #5 ouverte. Ne pas pousser l'étape 5 sur `demo-v1` avant sa fusion.
-- **5 — Scan** (facultatif) : lecture du QR par la caméra, contrôle de la signature (`verifierQrBillet`), « déjà scanné ».
+- **5 — Embarquement** : fait ; PR à relire. Ne pas pousser l'étape 6 sur `demo-v1` avant sa fusion.
 - **6 — Recette** : tablette et ordinateur, accessibilité, console, scénario de présentation dans le README.
 
 ## Points à confirmer par LOGIMAR
 
-Sens des traversées par jour (hypothèse : deux par jour), capacité du Victoria Jet, grille de prix et quotas, terminaux (« [À CONFIRMER] »), heure de fermeture de l'enregistrement, clôture de la vente en ligne (hypothèse : à l'ouverture de l'enregistrement), Standard remboursable ou non, délai et frais de modification, prix des options, format des numéros gabonais, mentions de la facture (NIF, RCCM, TVA), textes des pages d'aide, bornes d'âge. Back-office : seuil « presque pleine » (exemple 90 %), seuil d'écart à la référence (exemple 20 %), format du manifeste exigé par les autorités, qui valide les changements de prix (revenue manager seul ou direction), possibilité ou non de fermer le Flex.
+Sens des traversées par jour (hypothèse : deux par jour), capacité du Victoria Jet, grille de prix et quotas, terminaux (« [À CONFIRMER] »), heure de fermeture de l'enregistrement, clôture de la vente en ligne (hypothèse : à l'ouverture de l'enregistrement), Standard remboursable ou non, délai et frais de modification, prix des options, format des numéros gabonais, mentions de la facture (NIF, RCCM, TVA), textes des pages d'aide, bornes d'âge. Back-office : seuil « presque pleine » (exemple 90 %), seuil d'écart à la référence (exemple 20 %), format du manifeste exigé par les autorités, qui valide les changements de prix (revenue manager seul ou direction), possibilité ou non de fermer le Flex. Embarquement : un scan valide fait monter tout le billet d'un coup (ou contrôle passager par passager ?), qui peut rouvrir un embarquement clos, heure de fin de l'embarquement, format du manifeste de bord attendu par les autorités portuaires et la police, téléphones des agents (Android ou iPhone : détermine le besoin du décodeur `jsqr`).
