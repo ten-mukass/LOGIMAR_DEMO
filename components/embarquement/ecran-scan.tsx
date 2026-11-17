@@ -252,8 +252,7 @@ function ControleTraversee({ traverseeId }: { traverseeId: string }) {
         <section aria-label="Scanner un billet" className="space-y-3">
           {lecteur === null ? (
             <p className="rounded-carte bg-soleil-pale p-3 text-[14px] text-encre">
-              Ce navigateur ne sait pas lire les QR codes avec la caméra (c’est le cas de Safari sur iPhone). Utilisez Chrome
-              sur Android, ou la recherche ci-dessous.
+              Ce navigateur ne peut pas lire les QR codes. Utilisez la recherche manuelle ci-dessous.
             </p>
           ) : camera && lecteur ? (
             <>
