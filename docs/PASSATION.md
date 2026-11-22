@@ -23,7 +23,7 @@
 | 5 bis | Back-office : menu latéral réductible (demandé le 22/11/2026) | Fusionnée (PR #9), en production |
 | 5 ter | Deux tarifs, Éco et VIP (décision du fondateur, 22/11/2026) | Fusionnée (PR #10), en production |
 | 6 | Recette | À faire |
-| 7 | Brancher l'application sur la base Supabase | Plan validé (`docs/PLAN_BASE_DE_DONNEES.md`) ; étape A (fondations) en PR #11 : schéma, `PostgresRepository`, page `/preview/base` ; migrations à appliquer après relecture |
+| 7 | Brancher l'application sur la base Supabase | Plan validé (`docs/PLAN_BASE_DE_DONNEES.md`) ; étape A (fondations) en PR #11 : schéma, `PostgresRepository`, page `/preview/base`. Base Supabase : migration 0001 appliquée et données d'exemple chargées le 23/11/2026 (80 traversées, 480 paliers, 4 005 ventes, 8 026 passagers ; identiques à la démo) ; migration 0002 (retrait des droits publics) à appliquer |
 
 ### Étape 3 : contenu
 
@@ -82,6 +82,7 @@ Besoin : le contrôleur scanne le QR du billet, le passager monte si le scan est
 - `services/repository/postgres-repository.ts` : même interface et mêmes règles que `DemoRepository` (vraies réservations d'abord, ventes d'exemple ensuite, palier fermé au moment de l'achat). Comptes clients : pas encore (renvoie « absent » ou une erreur claire). Côté serveur, `listerReservationsLocales` renvoie les vraies réservations.
 - Tests (`postgres-repository.test.ts`, PGlite) : le schéma s'applique une fois, RLS partout, et la base montre exactement ce que montre la démo (référentiel, traversées, inventaires de toutes les traversées à trois dates, réservations retenues, répartition, fermeture de palier), plus les écritures (réservation, embarquement sans doublon, commande, facture sans trou, paiement, envoi, scans, clôture, rechargement des exemples).
 - Page `/preview/base` : n'existe que si `VERCEL_ENV = preview` (ou en développement local) ; ailleurs, 404. Boutons « Appliquer les migrations » et « Charger les données d'exemple » (actions serveur qui refusent hors Preview).
+- Migration 0002 : retire les droits que Supabase accorde par défaut aux rôles `anon` et `authenticated` (vérifié le 23/11/2026 : 150 droits, sans effet grâce à la RLS sans règle, mais retirés par précaution).
 - Le site n'utilise pas encore la base : c'est l'étape B.
 
 ## Méthode de travail (validée)
@@ -112,7 +113,7 @@ Besoin : le contrôleur scanne le QR du billet, le passager monte si le scan est
 - Le code d'accès est dans le code envoyé au navigateur : il protège l'écran, pas les données (toutes les données de la démo sont dans le navigateur).
 - Embarquement : la caméra exige https (ou localhost) ; la démo partage les embarquements entre onglets du même navigateur seulement (deux téléphones ne se voient pas : en production, synchronisation serveur sans doublon).
 - Outil de prévisualisation : il lit `.claude/launch.json` dans le dossier de la session ; une copie existe dans le dépôt, ignorée par git (`.git/info/exclude`).
-- Base Supabase : Preview et production partagent la même base (offre gratuite). Ne jamais écrire les valeurs des variables `POSTGRES_*` / `SUPABASE_*` ; en local, sans `.env.local`, la page de contrôle affiche « base non configurée ». Le pooler Supabase (mode transaction) refuse les requêtes préparées : garder `prepare: false`. Il supporte mal aussi plusieurs requêtes envoyées d'affilée sur une connexion (page bloquée 300 s le 23/11/2026) : `connexion.ts` envoie les requêtes une par une, avec un délai maximum (20 s, 60 s par transaction). L'offre gratuite met le projet en pause après 7 jours sans activité (tâche quotidienne prévue à l'étape E).
+- Base Supabase : Preview et production partagent la même base (offre gratuite). Ne jamais écrire les valeurs des variables `POSTGRES_*` / `SUPABASE_*` ; en local, sans `.env.local`, la page de contrôle affiche « base non configurée ». Le pooler Supabase (mode transaction) refuse les requêtes préparées : garder `prepare: false`. La bibliothèque `postgres` réencode en JSON un paramètre de type jsonb : écrire `$N::text::jsonb` (un test l'impose). Le pooler supporte mal aussi plusieurs requêtes envoyées d'affilée sur une connexion (page bloquée 300 s le 23/11/2026) : `connexion.ts` envoie les requêtes une par une, avec un délai maximum (20 s, 60 s par transaction). L'offre gratuite met le projet en pause après 7 jours sans activité (tâche quotidienne prévue à l'étape E).
 
 ## Étapes suivantes (rappel de `docs/PLAN_DEMO.md`)
 
