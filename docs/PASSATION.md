@@ -1,6 +1,6 @@
 # Passation — démonstration LOGIMAR 241
 
-État au 22 novembre 2026 (étape 5 fusionnée ; menu latéral du back-office en PR).
+État au 22 novembre 2026 (menu latéral fusionné ; passage à deux tarifs Éco et VIP en PR).
 
 ## Où sont les choses
 
@@ -19,7 +19,8 @@
 | 3 | Aller-retour, PDF, e-mails, Mes billets, compte, Aide | Fusionnée (PR #4, `ab4d1fd`), en production |
 | 4 | Back-office | Fusionnée (PR #5), en production ; correctif du billet PDF fusionné à part (PR #6) |
 | 5 | Embarquement : scan du QR, manifeste de bord | Fusionnée (PR #7), en production ; décodeur jsQR (iPhone) fusionné à part (PR #8) |
-| 5 bis | Back-office : menu latéral réductible (demandé le 22/11/2026) | PR #9 ouverte, à relire sur la Preview |
+| 5 bis | Back-office : menu latéral réductible (demandé le 22/11/2026) | Fusionnée (PR #9), en production |
+| 5 ter | Deux tarifs, Éco et VIP (décision du fondateur, 22/11/2026) | PR #10 ouverte, à relire sur la Preview |
 | 6 | Recette | À faire |
 
 ### Étape 3 : contenu
@@ -41,8 +42,8 @@
 - Le back-office a sa propre navigation (l'en-tête et la navigation du site sont masqués sous `/admin`) ; écrans pour ordinateur, utilisables sur tablette (tableaux défilants).
 - **Menu latéral** (`components/gestion/menu-gestion.tsx`, ajouté le 22/11/2026) : à partir de 1024 px, menu fixé à gauche, réductible à ses icônes (infobulle au survol et au focus) ; le choix est retenu dans le navigateur (`logimar-demo:v2:menu-gestion`). En dessous de 1024 px : barre du haut avec un bouton qui fait glisser le menu depuis la gauche (`<dialog>` : Échap, clic à côté, focus rendu au bouton). Le bandeau « Version de démonstration » est placé à côté du menu dans la gestion et l'embarquement. Variable CSS `--menu` = largeur du menu, pour les éléments calés sur la largeur de l'écran (détail d'une réservation). En développement, l'indicateur de Next.js est déplacé en bas à droite (`next.config.ts`) pour ne pas couvrir le bas du menu.
 - **Tableau de bord** (`/admin`) : remplissage, recette billets (et options), recette par siège offert, recette par passager, pick-up 7 j, rythme de réservation (places par jour, 30 j), répartition par tarif, par canal et par moyen de paiement, prochaines traversées (palier en vente par famille, écart à la référence, alertes), dernières réservations. Filtres mois et sens.
-- **Traversées** (`/admin/traversees`) et **fiche traversée** (`/admin/traversees/[id]`) : paliers (prix, quota, occupées, restantes, état en vente / en attente / épuisé / fermé), bouton Fermer / Ouvrir avec motif obligatoire, historique des changements, courbe J-30 → J0 contre la moyenne des traversées parties du même sens (au moins 3), lien « Voir côté client ». Le dernier palier Flex ne se ferme pas (cahier des charges §3.3).
-- Les fermetures de paliers sont stockées dans `logimar-demo:v2:donnees` (`changementsPaliers`) et appliquées par `DemoRepository.listerInventaires` : le prix change aussitôt sur le site (vérifié : 28 000 → 31 000 F en Éco le 20 nov., puis retour).
+- **Traversées** (`/admin/traversees`) et **fiche traversée** (`/admin/traversees/[id]`) : paliers (prix, quota, occupées, restantes, état en vente / en attente / épuisé / fermé), bouton Fermer / Ouvrir avec motif obligatoire, historique des changements, courbe J-30 → J0 contre la moyenne des traversées parties du même sens (au moins 3), lien « Voir côté client ». Le dernier palier VIP (ex-Flex) ne se ferme pas (cahier des charges §3.3).
+- Les fermetures de paliers sont stockées dans `logimar-demo:v3:donnees` (`changementsPaliers`) et appliquées par `DemoRepository.listerInventaires` : le prix change aussitôt sur le site (vérifié : 28 000 → 31 000 F en Éco le 20 nov., puis retour).
 - **Réservations** (`/admin/reservations`) : recherche (référence, nom sans accent, téléphone, e-mail), filtres traversée, statut, canal, origine (« Ce navigateur »), détail dépliable, 50 par page.
 - **Manifeste** (`/admin/traversees/[id]/manifeste`) : passagers payés par ordre alphabétique, pièces, statut d'embarquement ; impression et export CSV (séparateur « ; », pour Excel).
 - Calculs en fonctions pures testées : `domain/indicateurs.ts`, `domain/paliers.ts`, `domain/manifeste.ts` ; synthèse par traversée dans `services/gestion/service-gestion.ts`. `Repository.listerReservations` renvoie exactement les réservations qui composent l'occupation (testé sur les 80 traversées).
@@ -56,13 +57,21 @@ Besoin : le contrôleur scanne le QR du billet, le passager monte si le scan est
 - Écran **`/scan`** (mobile d'abord, même code d'accès que la gestion, lien « Embarquement » dans la gestion et sur la fiche traversée) : choix de la traversée (celles du jour, puis les prochaines), compteur « N à bord sur M attendus », scan par la caméra, photo du QR, recherche manuelle (référence, nom, téléphone, e-mail), journal des derniers contrôles, clôture et réouverture.
 - **Contrôle** (`domain/embarquement.ts`, fonctions pures testées) : signature du QR (`verifierQrBillet`), billet payé, bonne traversée, pas déjà utilisé, embarquement non clos. Résultats : valide, déjà scanné (avec l'heure du premier passage), autre traversée, non valable, refusé (falsifié, illisible, inconnu), embarquement clos.
 - **Billet utilisé une fois** : un scan valide fait monter tout de suite tous les passagers du billet ; le scan suivant donne « déjà utilisé ». « Retirer du bord » corrige une erreur passager par passager. La caméra ignore le même QR pendant 5 s (elle le voit plusieurs fois par seconde).
-- **Données** : `Embarquement` (un par passager à bord), `ScanEmbarquement` (journal), `ClotureEmbarquement` ; stockés dans `logimar-demo:v2:donnees` ; `Repository` : `listerEmbarquements`, `enregistrerEmbarquements` (sans doublon), `supprimerEmbarquement`, `listerScans`, `enregistrerScan`, `getClotureEmbarquement`, `definirClotureEmbarquement`. Service : `services/embarquement/service-embarquement.ts`.
+- **Données** : `Embarquement` (un par passager à bord), `ScanEmbarquement` (journal), `ClotureEmbarquement` ; stockés dans `logimar-demo:v3:donnees` ; `Repository` : `listerEmbarquements`, `enregistrerEmbarquements` (sans doublon), `supprimerEmbarquement`, `listerScans`, `enregistrerScan`, `getClotureEmbarquement`, `definirClotureEmbarquement`. Service : `services/embarquement/service-embarquement.ts`.
 - **Back-office** (`/admin/traversees/[id]/manifeste`) : onglet **Manifeste de bord** (passagers scannés, ordre et heure de passage, mode de contrôle) et onglet **Billets vendus** (passagers payés : à embarquer, embarqué, absent après clôture) ; export CSV et impression des deux ; mise à jour automatique quand un scan est fait dans un autre onglet.
 - **Billet du client** : tampon « Billet utilisé » et QR grisé une fois tous ses passagers embarqués.
 - **Démonstration sur un seul appareil** : panneau « Démonstration : simuler un scan » (billets de l'appareil, billet d'exemple, billet falsifié, billet d'une autre traversée) ; le QR est fabriqué comme sur le billet du client et passe par le même contrôle.
 - Vérifié dans le navigateur (téléphone 375 px, tablette, ordinateur) : scan valide, second scan refusé, falsifié refusé, autre traversée, billet de groupe (4 passagers), contrôle manuel, clôture (absents) et réouverture, manifeste de bord et billets vendus, tampon sur le billet du client ; console sans erreur. 158 tests, lint et build OK.
 - **Non vérifié** : la caméra elle-même (pas de caméra dans le navigateur intégré) ; à essayer sur un téléphone Android et sur un iPhone, sur la Preview (https).
 - **Lecture du QR** (`lib/lecture-qr.ts`) : lecteur intégré au navigateur (`BarcodeDetector`) quand il existe (Chrome et Edge sur Android, Chrome sur ordinateur), sinon décodeur `jsqr` 1.4.0 (Apache-2.0, ajouté le 18/11/2026 avec l'accord de l'utilisateur, chargé à la demande) : Safari sur iPhone, Firefox. Vérifié : tests de décodage d'un QR de billet dessiné comme sur le billet (fond blanc, fond gris décalé, image → passage à bord) et, dans le navigateur avec le lecteur intégré masqué, photo du QR réel d'un billet décodée par jsQR puis contrôlée.
+
+### Tarifs Éco et VIP (22/11/2026)
+
+- Décision du fondateur : deux familles seulement. `CodeFamille` = `"ECO" | "VIP"` ; le Standard est retiré partout (site client, back-office, options, ventes d'exemple, tests).
+- Le VIP reprend l'ancien Flex : mêmes sièges que l'Éco, modifiable sans frais, remboursable, embarquement prioritaire, sans quota propre et toujours vendable (son dernier palier ne se ferme pas). L'Éco est inchangé ; la garantie modification n'est proposée qu'avec l'Éco.
+- Grille d'exemple (`data/seed/tarifs.ts`) : Éco en 5 paliers de 30 places (25 000, 28 000, 31 000, 35 000, 39 000 F l'adulte), VIP 55 000 F. Ventes d'exemple : 85 % Éco, 15 % VIP.
+- Clé des données du navigateur passée en `logimar-demo:v3:donnees` : les réservations et réglages enregistrés avant le changement (avec Standard ou Flex) sont abandonnés. La session de gestion et la préférence du menu sont conservées.
+- Cahiers des charges : une note en tête signale la décision ; leur texte n'a pas été réécrit.
 
 ## Méthode de travail (validée)
 
@@ -77,7 +86,7 @@ Besoin : le contrôleur scanne le QR du billet, le passager monte si le scan est
 
 - `domain/` : types et fonctions pures (temps, programme, tarifs par paliers, occupation, passagers, contact, montants, recherche, références, messages) + tests.
 - `data/seed/` : toutes les données d'exemple ; ventes générées de façon déterministe (`ventes.ts`).
-- `services/` : `index.ts` choisit les implémentations. `Repository` → `DemoRepository` (seed + `localStorage`, clé `logimar-demo:v2:donnees`) ; `PaymentProvider` → `SimulatedProvider` (4 s, refus si le numéro finit par `0000`) ; `NotificationService` → `PreviewNotificationService` ; `AuthService` → `LocalAuthService` ; `AccesGestion` → `CodeDemoAccesGestion` (clé `logimar-demo:v2:gestion-session`) ; `ServiceReservation` ; `ServiceBillets` ; `ServiceGestion` (lecture groupée des ventes, réglage des paliers) ; `ServiceEmbarquement` (contrôle des billets, manifeste de bord, clôture) ; documents (QR signé, PDF).
+- `services/` : `index.ts` choisit les implémentations. `Repository` → `DemoRepository` (seed + `localStorage`, clé `logimar-demo:v3:donnees`) ; `PaymentProvider` → `SimulatedProvider` (4 s, refus si le numéro finit par `0000`) ; `NotificationService` → `PreviewNotificationService` ; `AuthService` → `LocalAuthService` ; `AccesGestion` → `CodeDemoAccesGestion` (clé `logimar-demo:v2:gestion-session`) ; `ServiceReservation` ; `ServiceBillets` ; `ServiceGestion` (lecture groupée des ventes, réglage des paliers) ; `ServiceEmbarquement` (contrôle des billets, manifeste de bord, clôture) ; documents (QR signé, PDF).
 - `components/` : `ui/`, `site/`, `accueil/`, `horaires/`, `parcours/`, `compte/`, `gestion/` (back-office), `embarquement/` (écran de scan). `app/` : routes, dont `app/admin/` et `app/scan/`. `lib/lecture-qr.ts` : lecture des QR (caméra, photo). `lib/use-etat-ventes.ts` relit les ventes toutes les 30 s, au retour sur l'onglet et quand un autre onglet modifie les données.
 
 ## Pièges connus
@@ -99,4 +108,4 @@ Besoin : le contrôleur scanne le QR du billet, le passager monte si le scan est
 
 ## Points à confirmer par LOGIMAR
 
-Sens des traversées par jour (hypothèse : deux par jour), capacité du Victoria Jet, grille de prix et quotas, terminaux (« [À CONFIRMER] »), heure de fermeture de l'enregistrement, clôture de la vente en ligne (hypothèse : à l'ouverture de l'enregistrement), Standard remboursable ou non, délai et frais de modification, prix des options, format des numéros gabonais, mentions de la facture (NIF, RCCM, TVA), textes des pages d'aide, bornes d'âge. Back-office : seuil « presque pleine » (exemple 90 %), seuil d'écart à la référence (exemple 20 %), format du manifeste exigé par les autorités, qui valide les changements de prix (revenue manager seul ou direction), possibilité ou non de fermer le Flex. Embarquement : un scan valide fait monter tout le billet d'un coup (ou contrôle passager par passager ?), qui peut rouvrir un embarquement clos, heure de fin de l'embarquement, format du manifeste de bord attendu par les autorités portuaires et la police, téléphones des agents (Android ou iPhone).
+Sens des traversées par jour (hypothèse : deux par jour), capacité du Victoria Jet, grille de prix et quotas, terminaux (« [À CONFIRMER] »), heure de fermeture de l'enregistrement, clôture de la vente en ligne (hypothèse : à l'ouverture de l'enregistrement), conditions et avantages du VIP (modifiable sans frais et remboursable : repris de l'ancien Flex), délai et frais de modification, prix des options, format des numéros gabonais, mentions de la facture (NIF, RCCM, TVA), textes des pages d'aide, bornes d'âge. Back-office : seuil « presque pleine » (exemple 90 %), seuil d'écart à la référence (exemple 20 %), format du manifeste exigé par les autorités, qui valide les changements de prix (revenue manager seul ou direction), possibilité ou non de fermer le VIP. Embarquement : un scan valide fait monter tout le billet d'un coup (ou contrôle passager par passager ?), qui peut rouvrir un embarquement clos, heure de fin de l'embarquement, format du manifeste de bord attendu par les autorités portuaires et la police, téléphones des agents (Android ou iPhone).

@@ -2,7 +2,7 @@
  * Tarification par paliers (yield management), fonctions pures.
  *
  * Règles (docs/CAHIER_DES_CHARGES_RESERVATION.md §4.3 et CAHIER_DES_CHARGES_GESTION.md §3.3) :
- * - chaque famille (Éco, Standard, Flex) a une suite de paliers du moins cher au plus cher, chacun avec un quota ;
+ * - chaque famille (Éco, VIP) a une suite de paliers du moins cher au plus cher, chacun avec un quota ;
  * - on vend toujours au palier ouvert le moins cher qui a encore assez de places ; un palier épuisé
  *   se ferme de lui-même et le suivant prend le relais ;
  * - un palier peut aussi être fermé à la main par le revenue manager ;
@@ -19,7 +19,7 @@ import type {
   Traversee,
 } from "./types"
 
-export const ORDRE_FAMILLES: CodeFamille[] = ["ECO", "STD", "FLEX"]
+export const ORDRE_FAMILLES: CodeFamille[] = ["ECO", "VIP"]
 
 /** Palier de la grille modèle, appliqué à chaque traversée. */
 export interface PalierGrille {
@@ -123,7 +123,7 @@ export function meilleureOffre(
   return { disponible: false, familleCode, raison: "famille-epuisee" }
 }
 
-/** Une offre par famille, dans l'ordre Éco, Standard, Flex. */
+/** Une offre par famille, dans l'ordre Éco, VIP. */
 export function offresTraversee(
   classes: ClasseReservation[],
   composition: CompositionPassagers,

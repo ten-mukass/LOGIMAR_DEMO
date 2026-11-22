@@ -22,7 +22,7 @@ Le code de la démo est le **début du code de production**, pas une maquette je
 ## Ce qui est réel dans la démo
 
 - Tout le parcours client des maquettes (`maquettes/`) : accueil, résultats, passagers, paiement, billet, horaires, mes billets.
-- **Calcul des prix par paliers** (yield) dans le code, sur les données d'exemple : la bande de dates, les tarifs Éco / Standard / Flex et l'alerte « plus que N places à ce prix » sont calculés, pas écrits en dur.
+- **Calcul des prix par paliers** (yield) dans le code, sur les données d'exemple : la bande de dates, les tarifs Éco / VIP (deux tarifs depuis le 22/11/2026, décision du fondateur) et l'alerte « plus que N places à ce prix » sont calculés, pas écrits en dur.
 - Blocage des places et du tarif pendant 15 min avec compte à rebours.
 - Durées calculées, calendrier limité aux jours de traversée.
 - Référence de billet, **QR code généré** et billet PDF + facture PDF téléchargeables.

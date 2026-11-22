@@ -3,6 +3,8 @@
 Version 1.0 — 14 novembre 2026
 Périmètre : application client de réservation (phase 1). L'application de gestion avec yield management et tableaux de bord est la phase 2 : elle n'est pas à coder maintenant, mais le modèle de données de la phase 1 doit déjà la permettre (section 7).
 
+> **Mise à jour du 22 novembre 2026 (décision du fondateur de LOGIMAR)** : deux familles tarifaires seulement, **Éco** et **VIP**. Le Standard est retiré ; le VIP reprend les conditions du Flex décrit ci-dessous (mêmes sièges que l'Éco, modifiable sans frais, remboursable, embarquement prioritaire) ; l'Éco est inchangé. Les mentions de Standard et de Flex dans ce document sont à lire dans ce sens.
+
 **Étape en cours : démonstration.** Ce document décrit la cible de production ; ce qui est réel ou simulé dans la démo est fixé par `PERIMETRE_DEMO.md`, qui prime en cas de doute.
 
 Maquettes de référence : dossier `maquettes/` (HTML et PNG) ; canevas Claude Design : https://claude.ai/artifact/JStk6REJCWcA11wM6BNpus

@@ -66,8 +66,9 @@ Données ajoutées : `Embarquement` (un par passager embarqué : traversée, ré
 2. **Aller-retour** : une `Commande` regroupe deux réservations (un paiement, une facture, deux billets). Ajout au modèle de données du cahier des charges.
 3. **Groupe et palier** : tous les passagers d'une réservation paient au même palier ; si le palier ouvert n'a plus assez de places pour tout le groupe, on passe au suivant. Alerte « plus que N places à ce prix » sous un seuil réglable.
 4. **Bébés** : n'occupent pas de place et ne comptent pas dans les quotas.
-5. **Garantie modification** : une par réservation, non proposée avec Flex.
+5. **Garantie modification** : une par réservation, non proposée avec le VIP (déjà modifiable sans frais).
 6. **25 décembre et 1er janvier** (vendredis) : jours de traversée normaux.
 7. **Bouton FR · EN** : masqué tant que l'anglais n'est pas fait.
 8. **« Le plus choisi »** : calculé à partir des ventes.
 9. **Date de référence** : date réelle du jour ; jours passés barrés ; données jusqu'au 31 janvier 2027.
+10. **Tarifs** (décision du fondateur, 22/11/2026) : deux familles, Éco et VIP. Le Standard est retiré ; le VIP reprend les conditions de l'ancien Flex (mêmes sièges que l'Éco, modifiable sans frais, remboursable, embarquement prioritaire, toujours vendable) ; l'Éco est inchangé (ni modifiable ni remboursable, garantie modification en option). Grille d'exemple : Éco en 5 paliers de 30 places (25 000 → 39 000 F l'adulte), VIP à 55 000 F sans quota propre. Les données enregistrées dans les navigateurs avant ce changement sont abandonnées (clé `logimar-demo:v3:donnees`).

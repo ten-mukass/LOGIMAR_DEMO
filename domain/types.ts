@@ -59,7 +59,7 @@ export interface Traversee {
   capaciteVendable: number
 }
 
-export type CodeFamille = "ECO" | "STD" | "FLEX"
+export type CodeFamille = "ECO" | "VIP"
 
 export interface FamilleTarifaire {
   id: string

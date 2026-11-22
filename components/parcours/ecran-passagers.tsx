@@ -20,7 +20,7 @@ import {
 } from "@/domain/passagers"
 import { jourDeDepart } from "@/domain/programme"
 import { versParametres, type CriteresRecherche } from "@/domain/recherche"
-import { meilleureOffre } from "@/domain/tarifs"
+import { meilleureOffre, ORDRE_FAMILLES } from "@/domain/tarifs"
 import { formatJourCourt, heureLocale } from "@/domain/temps"
 import type { Client, CodeFamille, PassagerEnregistre, TypePiece } from "@/domain/types"
 import { useCriteres } from "@/lib/use-criteres"
@@ -37,14 +37,12 @@ interface Brouillon {
   passagers: SaisiePassager[]
 }
 
-const FAMILLES: CodeFamille[] = ["ECO", "STD", "FLEX"]
-
 export function EcranPassagers({ referentiel }: { referentiel: Referentiel }) {
   const { ports, config } = referentiel
   const maintenant = useMaintenant()
   const { criteres, traverseeId, famille, traverseeRetourId, familleRetour } = useCriteres(ports, config.passagersMax)
-  const familleCode = FAMILLES.find((f) => f === famille)
-  const familleRetourCode = FAMILLES.find((f) => f === familleRetour)
+  const familleCode = ORDRE_FAMILLES.find((f) => f === famille)
+  const familleRetourCode = ORDRE_FAMILLES.find((f) => f === familleRetour)
   const retourDemande = Boolean(criteres?.dateRetour)
 
   const charger = useCallback(async () => {

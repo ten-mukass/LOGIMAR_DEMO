@@ -35,7 +35,7 @@ function avancer(ms: number) {
 
 function demande(partiel: Partial<DemandeBlocage> = {}): DemandeBlocage {
   return {
-    segments: [{ traverseeId: ALLER, familleCode: "STD", totalAffiche: 0 }],
+    segments: [{ traverseeId: ALLER, familleCode: "ECO", totalAffiche: 0 }],
     passagers,
     telephone: "+241 07 12 34 56",
     email: "",
@@ -122,7 +122,7 @@ describe("blocage des places", () => {
   })
 
   it("refuse une traversée complète, une vente close ou des données invalides", async () => {
-    const segment = (traverseeId: string) => [{ traverseeId, familleCode: "STD" as const, totalAffiche: 0 }]
+    const segment = (traverseeId: string) => [{ traverseeId, familleCode: "ECO" as const, totalAffiche: 0 }]
     expect(await service.bloquer(demande({ segments: segment("LBV-POG-2026-11-24-1215") }))).toMatchObject({
       ok: false,
       raison: "complet",
@@ -141,7 +141,7 @@ describe("blocage des places", () => {
 describe("aller-retour", () => {
   const segments = [
     { traverseeId: ALLER, familleCode: "ECO" as const, totalAffiche: 0 },
-    { traverseeId: RETOUR, familleCode: "FLEX" as const, totalAffiche: 0 },
+    { traverseeId: RETOUR, familleCode: "VIP" as const, totalAffiche: 0 },
   ]
 
   it("bloque les deux trajets dans une seule commande, chacun à son propre prix", async () => {
@@ -163,8 +163,8 @@ describe("aller-retour", () => {
     const r = await service.bloquer(
       demande({
         segments: [
-          { traverseeId: RETOUR, familleCode: "FLEX", totalAffiche: 0 },
-          { traverseeId: "LBV-POG-2026-11-24-1215", familleCode: "FLEX", totalAffiche: 0 },
+          { traverseeId: RETOUR, familleCode: "VIP", totalAffiche: 0 },
+          { traverseeId: "LBV-POG-2026-11-24-1215", familleCode: "VIP", totalAffiche: 0 },
         ],
       }),
     )
@@ -253,8 +253,8 @@ describe("paiement et émission du billet", () => {
     expect(callbacks).toHaveLength(0)
   })
 
-  it("refuse la garantie avec un tarif Flex", async () => {
-    const { commande } = await bloquer({ segments: [{ traverseeId: ALLER, familleCode: "FLEX", totalAffiche: 0 }] })
+  it("refuse la garantie avec un tarif VIP", async () => {
+    const { commande } = await bloquer({ segments: [{ traverseeId: ALLER, familleCode: "VIP", totalAffiche: 0 }] })
     const p = await service.payer(commande.id, { operateur: "moov", numero: "07123456", options: { GARANTIE: 1 } })
     expect(p).toMatchObject({ ok: false, raison: "donnees-invalides" })
   })

@@ -15,6 +15,7 @@ import {
   meilleureOffre,
   offreLaMoinsChere,
   offresTraversee,
+  ORDRE_FAMILLES,
   totalPassagers,
   type Offre,
 } from "@/domain/tarifs"
@@ -31,7 +32,6 @@ import { CarteTraversee } from "./carte-traversee"
 import { EnTeteParcours } from "./en-tete-parcours"
 
 const NOMS_JOURS_COURTS = ["Dim.", "Lun.", "Mar.", "Mer.", "Jeu.", "Ven.", "Sam."]
-const FAMILLES: CodeFamille[] = ["ECO", "STD", "FLEX"]
 
 /** Fenêtre (en jours) autour de la date choisie pour désigner le jour le moins cher. */
 const FENETRE_MOINS_CHER = 7
@@ -41,7 +41,7 @@ export function EcranResultats({ referentiel }: { referentiel: Referentiel }) {
   const router = useRouter()
   const maintenant = useMaintenant()
   const { criteres, erreurs, traverseeId: allerId, famille: allerFamilleBrute } = useCriteres(ports, config.passagersMax)
-  const allerFamille = FAMILLES.find((f) => f === allerFamilleBrute) ?? null
+  const allerFamille = ORDRE_FAMILLES.find((f) => f === allerFamilleBrute) ?? null
   // Aller-retour : on choisit l'aller, puis le retour (l'aller choisi est dans l'URL : « t », « f »).
   const modeRetour = Boolean(criteres?.dateRetour && allerId && allerFamille)
   const depart = criteres ? (modeRetour ? criteres.arrivee : criteres.depart) : undefined

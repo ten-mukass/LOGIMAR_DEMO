@@ -4,6 +4,8 @@ Version 1.0 — 14 novembre 2026
 Périmètre : back-office de LOGIMAR (phase 2) — programme, inventaire, **yield management**, réservations, embarquement, ventes en agence, paiements, tableaux de bord.
 À lire avec : `CAHIER_DES_CHARGES_RESERVATION.md` (modèle de données, section 7), `ETAT_DU_DEPOT.md`, `DESIGN_TOKENS.md`.
 
+> **Mise à jour du 22 novembre 2026 (décision du fondateur de LOGIMAR)** : deux familles tarifaires seulement, **Éco** et **VIP**. Le Standard est retiré ; le VIP reprend les conditions du Flex décrit ci-dessous (mêmes sièges que l'Éco, modifiable sans frais, remboursable, embarquement prioritaire) ; l'Éco est inchangé. Les mentions de Standard et de Flex dans ce document sont à lire dans ce sens.
+
 Ordre de réalisation : la phase 1 (réservation client) passe d'abord. Le back-office partage la même base et le même dépôt (`/admin`, `/scan`).
 
 ---
