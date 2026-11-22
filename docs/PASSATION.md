@@ -20,7 +20,7 @@
 | 4 | Back-office | Fusionnée (PR #5), en production ; correctif du billet PDF fusionné à part (PR #6) |
 | 5 | Embarquement : scan du QR, manifeste de bord | Fusionnée (PR #7), en production ; décodeur jsQR (iPhone) fusionné à part (PR #8) |
 | 5 bis | Back-office : menu latéral réductible (demandé le 22/11/2026) | Fusionnée (PR #9), en production |
-| 5 ter | Deux tarifs, Éco et VIP (décision du fondateur, 22/11/2026) | PR ouverte, à relire sur la Preview |
+| 5 ter | Deux tarifs, Éco et VIP (décision du fondateur, 22/11/2026) | PR #10 ouverte, à relire sur la Preview |
 | 6 | Recette | À faire |
 
 ### Étape 3 : contenu
