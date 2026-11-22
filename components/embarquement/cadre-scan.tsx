@@ -4,6 +4,7 @@ import { LayoutDashboard, LogOut } from "lucide-react"
 import Link from "next/link"
 import type { ReactNode } from "react"
 import { GardeGestion } from "@/components/gestion/cadre-gestion"
+import { TexteBandeauDemo } from "@/components/site/bandeau-demo"
 import { Logo } from "@/components/site/logo"
 
 /** Embarquement : même code d'accès que la gestion, en-tête compact pour le téléphone de l'agent. */
@@ -12,6 +13,7 @@ export function CadreScan({ children }: { children: ReactNode }) {
     <GardeGestion>
       {(seDeconnecter) => (
         <div className="min-h-dvh bg-ecume">
+          <TexteBandeauDemo />
           <header className="bg-marine text-white">
             <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-2.5">
               <Link href="/scan" className="flex items-center gap-2.5">

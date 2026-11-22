@@ -1,25 +1,14 @@
 "use client"
 
-import { ExternalLink, LayoutDashboard, LockKeyhole, LogOut, ScanLine, Ship, Ticket } from "lucide-react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { LockKeyhole } from "lucide-react"
 import { useEffect, useState, type ReactNode } from "react"
+import { TexteBandeauDemo } from "@/components/site/bandeau-demo"
 import { Logo } from "@/components/site/logo"
 import { Bouton } from "@/components/ui/bouton"
 import { ariaChamp, Champ, classesChamp } from "@/components/ui/champ"
 import { cn } from "@/lib/utils"
 import { accesGestion } from "@/services"
-
-const LIENS = [
-  { href: "/admin", libelle: "Tableau de bord", icone: LayoutDashboard },
-  { href: "/admin/traversees", libelle: "Traversées", icone: Ship },
-  { href: "/admin/reservations", libelle: "Réservations", icone: Ticket },
-  { href: "/scan", libelle: "Embarquement", icone: ScanLine },
-]
-
-function actif(chemin: string, href: string): boolean {
-  return href === "/admin" ? chemin === "/admin" : chemin === href || chemin.startsWith(`${href}/`)
-}
+import { MenuLateral, MenuMobile, useMenuReplie } from "./menu-gestion"
 
 /** Écran de code d'accès tant que la session de gestion n'est pas ouverte (back-office et embarquement). */
 export function GardeGestion({ children }: { children: (seDeconnecter: () => Promise<void>) => ReactNode }) {
@@ -35,78 +24,43 @@ export function GardeGestion({ children }: { children: (seDeconnecter: () => Pro
     }
   }, [])
 
-  if (connecte === null) return <main className="min-h-[60dvh]" />
-  if (!connecte) return <Connexion onConnecte={() => setConnecte(true)} />
+  if (connecte === null)
+    return (
+      <>
+        <TexteBandeauDemo />
+        <main className="min-h-[60dvh]" />
+      </>
+    )
+  if (!connecte)
+    return (
+      <>
+        <TexteBandeauDemo />
+        <Connexion onConnecte={() => setConnecte(true)} />
+      </>
+    )
   return children(async () => {
     await accesGestion.deconnecter()
     setConnecte(false)
   })
 }
 
-/** Back-office : écran de code d'accès, puis en-tête et navigation propres à la gestion. */
+/** Back-office : écran de code d'accès, puis menu latéral (réductible) et contenu de la page. */
 export function CadreGestion({ children }: { children: ReactNode }) {
-  return (
-    <GardeGestion>
-      {(seDeconnecter) => (
-        <div className="min-h-dvh bg-ecume">
-          <EnTeteGestion onDeconnexion={seDeconnecter} />
-          <main className="mx-auto max-w-[1440px] space-y-5 px-4 py-6 md:px-6 print:max-w-none print:p-0">{children}</main>
-        </div>
-      )}
-    </GardeGestion>
-  )
+  return <GardeGestion>{(seDeconnecter) => <Disposition onDeconnexion={seDeconnecter}>{children}</Disposition>}</GardeGestion>
 }
 
-function EnTeteGestion({ onDeconnexion }: { onDeconnexion: () => Promise<void> }) {
-  const chemin = usePathname()
+function Disposition({ onDeconnexion, children }: { onDeconnexion: () => Promise<void>; children: ReactNode }) {
+  const [replie, basculer] = useMenuReplie()
   return (
-    <header className="bg-marine text-white print:hidden">
-      <div className="mx-auto flex max-w-[1440px] flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2.5 md:px-6">
-        <Link href="/admin" className="flex items-center gap-3">
-          <Logo taille={36} />
-          <span className="leading-tight">
-            <span className="block font-titre text-[16px] font-extrabold">LOGIMAR 241</span>
-            <span className="block text-[12px] font-medium text-white/80">Gestion</span>
-          </span>
-        </Link>
-        <nav aria-label="Navigation de la gestion" className="order-last w-full lg:order-none lg:w-auto">
-          <ul className="flex gap-1">
-            {LIENS.map(({ href, libelle, icone: Icone }) => (
-              <li key={href}>
-                <Link
-                  href={href}
-                  aria-current={actif(chemin, href) ? "page" : undefined}
-                  className={cn(
-                    "inline-flex min-h-10 items-center gap-2 rounded-champ px-3 text-[14px] font-semibold",
-                    actif(chemin, href) ? "bg-white text-marine" : "text-white/85 hover:bg-white/10 hover:text-white",
-                  )}
-                >
-                  <Icone aria-hidden className="size-4" />
-                  {libelle}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-        <div className="ml-auto flex items-center gap-2">
-          <Link
-            href="/"
-            className="inline-flex min-h-10 items-center gap-1.5 rounded-champ px-3 text-[14px] font-semibold text-white/85 hover:bg-white/10 hover:text-white"
-          >
-            <ExternalLink aria-hidden className="size-4" />
-            Site client
-          </Link>
-          <button
-            type="button"
-            onClick={() => void onDeconnexion()}
-            className="inline-flex min-h-10 items-center gap-1.5 rounded-champ border border-white/40 px-3 text-[14px] font-semibold hover:bg-white/10"
-          >
-            <LogOut aria-hidden className="size-4" />
-            Se déconnecter
-          </button>
-        </div>
+    // --menu : largeur occupée par le menu, pour les éléments qui se calent sur la largeur de l'écran.
+    <div className={cn("flex min-h-dvh bg-ecume [--menu:0px]", replie ? "lg:[--menu:72px]" : "lg:[--menu:15rem]")}>
+      <MenuLateral replie={replie} onBasculer={basculer} onDeconnexion={onDeconnexion} />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <TexteBandeauDemo />
+        <MenuMobile onDeconnexion={onDeconnexion} />
+        <main className="mx-auto w-full max-w-[1440px] space-y-5 px-4 py-6 md:px-6 print:max-w-none print:p-0">{children}</main>
       </div>
-    </header>
+    </div>
   )
 }
 

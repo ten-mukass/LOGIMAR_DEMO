@@ -1,6 +1,6 @@
 # Passation — démonstration LOGIMAR 241
 
-État au 18 novembre 2026 (fin de l'étape 5).
+État au 22 novembre 2026 (étape 5 fusionnée ; menu latéral du back-office en PR).
 
 ## Où sont les choses
 
@@ -18,7 +18,8 @@
 | 2 | Parcours aller simple jusqu'au billet | Fusionnée (PR #3), en production |
 | 3 | Aller-retour, PDF, e-mails, Mes billets, compte, Aide | Fusionnée (PR #4, `ab4d1fd`), en production |
 | 4 | Back-office | Fusionnée (PR #5), en production ; correctif du billet PDF fusionné à part (PR #6) |
-| 5 | Embarquement : scan du QR, manifeste de bord | Fusionnée (PR #7) ; décodeur jsQR (iPhone) dans une PR à part, ouverte après coup |
+| 5 | Embarquement : scan du QR, manifeste de bord | Fusionnée (PR #7), en production ; décodeur jsQR (iPhone) fusionné à part (PR #8) |
+| 5 bis | Back-office : menu latéral réductible (demandé le 22/11/2026) | PR ouverte, à relire sur la Preview |
 | 6 | Recette | À faire |
 
 ### Étape 3 : contenu
@@ -37,7 +38,8 @@
 ### Étape 4 : contenu
 
 - Accès `/admin` par un code de démonstration (`data/seed/gestion.ts`, `241241`), session de 8 h dans le navigateur. `AccesGestion` → `CodeDemoAccesGestion` ; production : comptes, rôles, double facteur.
-- Le back-office a son propre en-tête (l'en-tête et la navigation du site sont masqués sous `/admin`) ; écrans pour ordinateur, utilisables sur tablette (tableaux défilants).
+- Le back-office a sa propre navigation (l'en-tête et la navigation du site sont masqués sous `/admin`) ; écrans pour ordinateur, utilisables sur tablette (tableaux défilants).
+- **Menu latéral** (`components/gestion/menu-gestion.tsx`, ajouté le 22/11/2026) : à partir de 1024 px, menu fixé à gauche, réductible à ses icônes (infobulle au survol et au focus) ; le choix est retenu dans le navigateur (`logimar-demo:v2:menu-gestion`). En dessous de 1024 px : barre du haut avec un bouton qui fait glisser le menu depuis la gauche (`<dialog>` : Échap, clic à côté, focus rendu au bouton). Le bandeau « Version de démonstration » est placé à côté du menu dans la gestion et l'embarquement. Variable CSS `--menu` = largeur du menu, pour les éléments calés sur la largeur de l'écran (détail d'une réservation). En développement, l'indicateur de Next.js est déplacé en bas à droite (`next.config.ts`) pour ne pas couvrir le bas du menu.
 - **Tableau de bord** (`/admin`) : remplissage, recette billets (et options), recette par siège offert, recette par passager, pick-up 7 j, rythme de réservation (places par jour, 30 j), répartition par tarif, par canal et par moyen de paiement, prochaines traversées (palier en vente par famille, écart à la référence, alertes), dernières réservations. Filtres mois et sens.
 - **Traversées** (`/admin/traversees`) et **fiche traversée** (`/admin/traversees/[id]`) : paliers (prix, quota, occupées, restantes, état en vente / en attente / épuisé / fermé), bouton Fermer / Ouvrir avec motif obligatoire, historique des changements, courbe J-30 → J0 contre la moyenne des traversées parties du même sens (au moins 3), lien « Voir côté client ». Le dernier palier Flex ne se ferme pas (cahier des charges §3.3).
 - Les fermetures de paliers sont stockées dans `logimar-demo:v2:donnees` (`changementsPaliers`) et appliquées par `DemoRepository.listerInventaires` : le prix change aussitôt sur le site (vérifié : 28 000 → 31 000 F en Éco le 20 nov., puis retour).
