@@ -102,6 +102,7 @@ Besoin : le contrôleur scanne le QR du billet, le passager monte si le scan est
 
 ## Pièges connus
 
+- Le build télécharge les polices Google (`next/font/google`) : un échec réseau passager fait échouer le build (« module-not-found » sur `montserrat…module.css`), en local comme sur Vercel. Relancer ; si cela se répète, passer aux polices hébergées dans le dépôt.
 - Ne pas lancer `next build` pendant que le serveur de développement tourne (dossier `.next` partagé : cache Turbopack corrompu). Arrêter la prévisualisation avant.
 - `crypto.subtle` et `crypto.randomUUID` exigent HTTPS ou localhost (pas d'accès en `http` depuis un téléphone sur le réseau local).
 - Les ventes d'exemple dépendent de la date réelle : le remplissage progresse avec le temps ; elles cèdent la place aux réservations du visiteur (pas de surréservation).
@@ -111,7 +112,7 @@ Besoin : le contrôleur scanne le QR du billet, le passager monte si le scan est
 - Le code d'accès est dans le code envoyé au navigateur : il protège l'écran, pas les données (toutes les données de la démo sont dans le navigateur).
 - Embarquement : la caméra exige https (ou localhost) ; la démo partage les embarquements entre onglets du même navigateur seulement (deux téléphones ne se voient pas : en production, synchronisation serveur sans doublon).
 - Outil de prévisualisation : il lit `.claude/launch.json` dans le dossier de la session ; une copie existe dans le dépôt, ignorée par git (`.git/info/exclude`).
-- Base Supabase : Preview et production partagent la même base (offre gratuite). Ne jamais écrire les valeurs des variables `POSTGRES_*` / `SUPABASE_*` ; en local, sans `.env.local`, la page de contrôle affiche « base non configurée ». Le pooler Supabase (mode transaction) refuse les requêtes préparées : garder `prepare: false`. L'offre gratuite met le projet en pause après 7 jours sans activité (tâche quotidienne prévue à l'étape E).
+- Base Supabase : Preview et production partagent la même base (offre gratuite). Ne jamais écrire les valeurs des variables `POSTGRES_*` / `SUPABASE_*` ; en local, sans `.env.local`, la page de contrôle affiche « base non configurée ». Le pooler Supabase (mode transaction) refuse les requêtes préparées : garder `prepare: false`. Il supporte mal aussi plusieurs requêtes envoyées d'affilée sur une connexion (page bloquée 300 s le 23/11/2026) : `connexion.ts` envoie les requêtes une par une, avec un délai maximum (20 s, 60 s par transaction). L'offre gratuite met le projet en pause après 7 jours sans activité (tâche quotidienne prévue à l'étape E).
 
 ## Étapes suivantes (rappel de `docs/PLAN_DEMO.md`)
 
