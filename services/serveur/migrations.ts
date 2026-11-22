@@ -28,8 +28,10 @@ create table if not exists schema_migrations (
 alter table schema_migrations enable row level security;
 `
 
+/** Lecture seule : ne crée rien (la table de suivi est créée au premier « appliquer »). */
 export async function etatMigrations(sql: Sql): Promise<EtatMigration[]> {
-  await sql.executer(SUIVI)
+  const [suivi] = await sql.requete<{ existe: boolean }>("select to_regclass('public.schema_migrations') is not null as existe")
+  if (!suivi?.existe) return MIGRATIONS.map((m) => ({ version: m.version, description: m.description, appliqueeLe: null }))
   const faites = await sql.requete<{ version: string; appliquee_le: Date | string }>(
     "select version, appliquee_le from schema_migrations",
   )
@@ -39,6 +41,7 @@ export async function etatMigrations(sql: Sql): Promise<EtatMigration[]> {
 
 /** Applique les migrations manquantes, chacune dans sa transaction ; renvoie les versions appliquées. */
 export async function appliquerMigrations(sql: Sql): Promise<string[]> {
+  await sql.executer(SUIVI)
   const etat = await etatMigrations(sql)
   const appliquees: string[] = []
   for (const migration of MIGRATIONS) {
