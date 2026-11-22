@@ -31,7 +31,7 @@ async function inserer(
   for (let i = 0; i < lignes.length; i += 1000) {
     const paquet = lignes.slice(i, i + 1000)
     await sql.requete(
-      `insert into ${table} (${noms.join(", ")}) select ${noms.join(", ")} from jsonb_to_recordset($1::jsonb) as x(${definition})${suite}`,
+      `insert into ${table} (${noms.join(", ")}) select ${noms.join(", ")} from jsonb_to_recordset($1::text::jsonb) as x(${definition})${suite}`,
       [JSON.stringify(paquet)],
     )
   }

@@ -307,3 +307,13 @@ describe("écritures", () => {
     expect(b[0].placesRestantes).toBe(d[0].placesRestantes)
   })
 })
+
+describe("compatibilité avec le pilote de production", () => {
+  it("passe les paramètres JSON en texte ($N::text::jsonb), sinon la bibliothèque postgres les réencode", async () => {
+    const { readFileSync } = await import("node:fs")
+    for (const fichier of ["services/repository/postgres-repository.ts", "services/serveur/exemples.ts"]) {
+      const source = readFileSync(fichier, "utf8")
+      expect(source.match(/\$\d+::jsonb|\$\$\{n\}::jsonb/g) ?? [], fichier).toEqual([])
+    }
+  })
+})

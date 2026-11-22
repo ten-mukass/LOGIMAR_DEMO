@@ -48,7 +48,7 @@ import type { FiltreTraversees, Inventaire, Referentiel, Repository } from "./re
 const MS_JOUR = 86_400_000
 
 /** Liste d'identifiants passée en un seul paramètre JSON (même écriture pour tous les pilotes). */
-const DANS = (n: number) => `(select jsonb_array_elements_text($${n}::jsonb))`
+const DANS = (n: number) => `(select jsonb_array_elements_text($${n}::text::jsonb))`
 
 // Lignes de la base → objets du domaine -------------------------------------
 
@@ -492,7 +492,7 @@ export class PostgresRepository implements Repository {
     await this.sql.requete(
       `insert into embarquements (id, traversee_id, reservation_id, passager_id, reference, mode, agent, embarque_le)
        select id, traversee_id, reservation_id, passager_id, reference, mode, agent, embarque_le
-       from jsonb_to_recordset($1::jsonb) as x(id text, traversee_id text, reservation_id text, passager_id text,
+       from jsonb_to_recordset($1::text::jsonb) as x(id text, traversee_id text, reservation_id text, passager_id text,
          reference text, mode text, agent text, embarque_le timestamptz)
        on conflict do nothing`,
       [
@@ -603,7 +603,7 @@ export class PostgresRepository implements Repository {
         await sql.requete(
           `insert into passagers (reservation_id, id, rang, categorie, nom, prenom, date_naissance, type_piece, numero_piece)
            select $1, id, rang, categorie, nom, prenom, date_naissance, type_piece, numero_piece
-           from jsonb_to_recordset($2::jsonb) as x(id text, rang integer, categorie text, nom text, prenom text,
+           from jsonb_to_recordset($2::text::jsonb) as x(id text, rang integer, categorie text, nom text, prenom text,
              date_naissance date, type_piece text, numero_piece text)
            on conflict (reservation_id, id) do update set rang = excluded.rang, categorie = excluded.categorie,
              nom = excluded.nom, prenom = excluded.prenom, date_naissance = excluded.date_naissance,
@@ -629,7 +629,7 @@ export class PostgresRepository implements Repository {
       if (r.options.length > 0) {
         await sql.requete(
           `insert into reservation_options (reservation_id, code, quantite, prix_unitaire)
-           select $1, code, quantite, prix_unitaire from jsonb_to_recordset($2::jsonb) as x(code text, quantite integer, prix_unitaire integer)`,
+           select $1, code, quantite, prix_unitaire from jsonb_to_recordset($2::text::jsonb) as x(code text, quantite integer, prix_unitaire integer)`,
           [r.id, JSON.stringify(r.options.map((o) => ({ code: o.code, quantite: o.quantite, prix_unitaire: o.prixUnitaire })))],
         )
       }
@@ -720,7 +720,7 @@ export class PostgresRepository implements Repository {
   async enregistrerEnvoi(e: Envoi): Promise<void> {
     await this.sql.requete(
       `insert into envois (id, commande_id, client_id, canal, destinataire, objet, texte, pieces, statut, tentatives, erreur, cree_le)
-       values ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11, $12::timestamptz)
+       values ($1, $2, $3, $4, $5, $6, $7, $8::text::jsonb, $9, $10, $11, $12::timestamptz)
        on conflict (id) do update set statut = excluded.statut, tentatives = excluded.tentatives, erreur = excluded.erreur`,
       [e.id, e.commandeId, e.clientId, e.canal, e.destinataire, e.objet, e.texte, JSON.stringify(e.pieces), e.statut, e.tentatives, e.erreur, e.creeLe],
     )
