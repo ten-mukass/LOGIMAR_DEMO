@@ -23,7 +23,7 @@
 | 5 bis | Back-office : menu latéral réductible (demandé le 22/11/2026) | Fusionnée (PR #9), en production |
 | 5 ter | Deux tarifs, Éco et VIP (décision du fondateur, 22/11/2026) | Fusionnée (PR #10), en production |
 | 6 | Recette | À faire |
-| 7 | Brancher l'application sur la base Supabase | Plan validé (`docs/PLAN_BASE_DE_DONNEES.md`) ; étape A (fondations) en PR : schéma, `PostgresRepository`, page `/preview/base` ; migrations à appliquer après relecture |
+| 7 | Brancher l'application sur la base Supabase | Plan validé (`docs/PLAN_BASE_DE_DONNEES.md`) ; étape A (fondations) en PR #11 : schéma, `PostgresRepository`, page `/preview/base` ; migrations à appliquer après relecture |
 
 ### Étape 3 : contenu
 
