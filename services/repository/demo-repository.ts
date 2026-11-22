@@ -62,7 +62,8 @@ interface DonneesLocales {
   cloturesEmbarquement: ClotureEmbarquement[]
 }
 
-const CLE = "logimar-demo:v2:donnees"
+// v3 : passage à deux tarifs (Éco, VIP) ; les données enregistrées avec Standard ou Flex sont abandonnées.
+const CLE = "logimar-demo:v3:donnees"
 const VIDE: DonneesLocales = {
   version: 2,
   reservations: [],
@@ -209,7 +210,7 @@ export class DemoRepository implements Repository {
   }
 
   async repartitionParFamille(maintenant: Date): Promise<Record<CodeFamille, number>> {
-    const repartition: Record<CodeFamille, number> = { ECO: 0, STD: 0, FLEX: 0 }
+    const repartition: Record<CodeFamille, number> = { ECO: 0, VIP: 0 }
     for (const r of this.reservationsRetenues(maintenant)) {
       if (estVendue(r, maintenant)) repartition[r.familleCode] += placesNecessaires(compositionDe(r.passagers))
     }

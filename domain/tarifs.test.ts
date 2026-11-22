@@ -32,8 +32,8 @@ const traversee: Traversee = {
 const grille: PalierGrille[] = [
   { familleCode: "ECO", rang: 1, prix: { adulte: 100, enfant: 60, bebe: 10 }, quota: 2 },
   { familleCode: "ECO", rang: 2, prix: { adulte: 120, enfant: 70, bebe: 10 }, quota: 3 },
-  { familleCode: "STD", rang: 1, prix: { adulte: 150, enfant: 90, bebe: 10 }, quota: 5 },
-  { familleCode: "FLEX", rang: 1, prix: { adulte: 200, enfant: 120, bebe: 10 }, quota: null },
+  { familleCode: "ECO", rang: 3, prix: { adulte: 150, enfant: 90, bebe: 10 }, quota: 4 },
+  { familleCode: "VIP", rang: 1, prix: { adulte: 200, enfant: 120, bebe: 10 }, quota: null },
 ]
 
 const classes = appliquerGrille(traversee, grille)
@@ -87,47 +87,47 @@ describe("meilleureOffre", () => {
   })
 
   it("signale une famille épuisée", () => {
-    const offre = meilleureOffre(classes, "ECO", un, 10, occupation({ "T1:ECO-1": 2, "T1:ECO-2": 3 }))
+    const offre = meilleureOffre(classes, "ECO", un, 10, occupation({ "T1:ECO-1": 2, "T1:ECO-2": 3, "T1:ECO-3": 4 }))
     expect(offre).toEqual({ disponible: false, familleCode: "ECO", raison: "famille-epuisee" })
   })
 
   it("le palier sans quota reste vendable jusqu'à la capacité", () => {
-    const occ = occupation({ "T1:ECO-1": 2, "T1:ECO-2": 3, "T1:STD-1": 4 })
-    const offre = meilleureOffre(classes, "FLEX", un, 10, occ)
+    const occ = occupation({ "T1:ECO-1": 2, "T1:ECO-2": 3, "T1:ECO-3": 4 })
+    const offre = meilleureOffre(classes, "VIP", un, 10, occ)
     expect(offre.disponible && offre.placesAuPrix).toBe(1)
   })
 
   it("ne vend jamais au-delà de la capacité, même si le palier a du quota", () => {
-    const occ = occupation({ "T1:STD-1": 0, "T1:FLEX-1": 9 })
-    const offre = meilleureOffre(classes, "STD", { adultes: 2, enfants: 0, bebes: 0 }, 10, occ)
-    expect(offre).toEqual({ disponible: false, familleCode: "STD", raison: "places-insuffisantes" })
+    const occ = occupation({ "T1:VIP-1": 9 })
+    const offre = meilleureOffre(classes, "ECO", { adultes: 2, enfants: 0, bebes: 0 }, 10, occ)
+    expect(offre).toEqual({ disponible: false, familleCode: "ECO", raison: "places-insuffisantes" })
   })
 
   it("annonce une traversée complète", () => {
-    const offre = meilleureOffre(classes, "FLEX", un, 10, occupation({ "T1:FLEX-1": 10 }))
-    expect(offre).toEqual({ disponible: false, familleCode: "FLEX", raison: "complet" })
+    const offre = meilleureOffre(classes, "VIP", un, 10, occupation({ "T1:VIP-1": 10 }))
+    expect(offre).toEqual({ disponible: false, familleCode: "VIP", raison: "complet" })
   })
 
   it("un palier plus cher ne se ferme pas parce qu'un moins cher est épuisé", () => {
     const occ = occupation({ "T1:ECO-1": 2 })
-    expect(meilleureOffre(classes, "STD", un, 10, occ).disponible).toBe(true)
+    expect(meilleureOffre(classes, "VIP", un, 10, occ).disponible).toBe(true)
   })
 })
 
 describe("offres d'une traversée", () => {
-  it("donne une offre par famille dans l'ordre Éco, Standard, Flex", () => {
+  it("donne une offre par famille dans l'ordre Éco, VIP", () => {
     const offres = offresTraversee(classes, un, 10, OCCUPATION_VIDE)
-    expect(offres.map((o) => o.familleCode)).toEqual(["ECO", "STD", "FLEX"])
+    expect(offres.map((o) => o.familleCode)).toEqual(["ECO", "VIP"])
   })
 
   it("le prix « dès » est l'offre disponible la moins chère", () => {
-    const occ = occupation({ "T1:ECO-1": 2, "T1:ECO-2": 3 })
+    const occ = occupation({ "T1:ECO-1": 2, "T1:ECO-2": 3, "T1:ECO-3": 4 })
     const offres = offresTraversee(classes, un, 10, occ)
-    expect(offreLaMoinsChere(offres)?.familleCode).toBe("STD")
+    expect(offreLaMoinsChere(offres)?.familleCode).toBe("VIP")
   })
 
   it("pas de prix « dès » si tout est complet", () => {
-    const offres = offresTraversee(classes, un, 10, occupation({ "T1:FLEX-1": 10 }))
+    const offres = offresTraversee(classes, un, 10, occupation({ "T1:VIP-1": 10 }))
     expect(offreLaMoinsChere(offres)).toBeNull()
   })
 
@@ -182,7 +182,7 @@ describe("grille et conditions", () => {
   })
 
   it("applique la grille avec des identifiants stables", () => {
-    expect(classe("T1:FLEX-1").quota).toBeNull()
+    expect(classe("T1:VIP-1").quota).toBeNull()
     expect(classes.every((c) => c.ouverte && c.traverseeId === "T1")).toBe(true)
   })
 })

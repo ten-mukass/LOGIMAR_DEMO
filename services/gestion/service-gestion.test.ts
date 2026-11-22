@@ -80,7 +80,7 @@ describe("mêmes chiffres que le site client", () => {
     const avant = await gestion.etatVentes(instant, [TRAVERSEE])
     const placesAvant = calculerIndicateurs(avant.traversees, avant.reservations, instant).places
     const bloquee = await reservation.bloquer({
-      segments: [{ traverseeId: TRAVERSEE, familleCode: "STD", totalAffiche: 0 }],
+      segments: [{ traverseeId: TRAVERSEE, familleCode: "ECO", totalAffiche: 0 }],
       passagers: [
         { categorie: "adulte", nom: "Mba", prenom: "Paul", dateNaissance: "", typePiece: "cni", numeroPiece: "EX1234567" },
       ],
@@ -133,12 +133,12 @@ describe("réglage des paliers", () => {
     expect(inv.classes.find((c) => c.id === avant!.classeId)?.ouverte).toBe(false)
   })
 
-  it("refuse un changement sans motif ou la fermeture du Flex", async () => {
+  it("refuse un changement sans motif ou la fermeture du VIP", async () => {
     const avant = await prixEco()
     expect(await gestion.changerPalier(TRAVERSEE, avant!.classeId, false, "")).toMatchObject({ ok: false })
-    expect(await gestion.changerPalier(TRAVERSEE, `${TRAVERSEE}:FLEX-1`, false, "Essai")).toMatchObject({
+    expect(await gestion.changerPalier(TRAVERSEE, `${TRAVERSEE}:VIP-1`, false, "Essai")).toMatchObject({
       ok: false,
-      message: expect.stringMatching(/Flex/),
+      message: expect.stringMatching(/VIP/),
     })
     expect(await gestion.changerPalier("inconnue", avant!.classeId, false, "Essai")).toMatchObject({ ok: false })
     expect(await repository.listerChangementsPaliers()).toEqual([])
@@ -148,7 +148,7 @@ describe("réglage des paliers", () => {
     const plusTard = new Date("2026-11-20T11:00:00+01:00")
     const toutes = await repository.listerReservations(plusTard, { traverseeIds: [TRAVERSEE] })
     const aVenir = toutes.find(
-      (r) => r.familleCode !== "FLEX" && Date.parse(r.creeLe) > instant.getTime() && estVendue(r, plusTard),
+      (r) => r.familleCode !== "VIP" && Date.parse(r.creeLe) > instant.getTime() && estVendue(r, plusTard),
     )
     expect(aVenir).toBeDefined()
     expect(await gestion.changerPalier(TRAVERSEE, aVenir!.classeId, false, "Test")).toEqual({ ok: true })
@@ -185,7 +185,7 @@ describe("synthèse des traversées", () => {
     const complete = lignes.find((l) => l.traversee.id === "LBV-POG-2026-11-24-1215")!
     expect(complete.indicateurs.places).toBe(complete.traversee.capaciteVendable)
     expect(complete.alertes).toContain("complete")
-    expect(complete.enVente).toEqual({ ECO: null, STD: null, FLEX: null })
+    expect(complete.enVente).toEqual({ ECO: null, VIP: null })
     const partie = lignes.find((l) => l.traversee.id === "LBV-POG-2026-11-13-1215")!
     expect(partie.statut).toBe("partie")
     expect(partie.alertes).toEqual([])

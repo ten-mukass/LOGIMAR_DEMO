@@ -29,7 +29,7 @@ async function dernierCode(): Promise<string> {
 
 async function commandePayee(contact: { telephone?: string; email?: string }, traverseeId = "LBV-POG-2026-11-20-1215") {
   const r = await service.bloquer({
-    segments: [{ traverseeId, familleCode: "STD", totalAffiche: 0 }],
+    segments: [{ traverseeId, familleCode: "ECO", totalAffiche: 0 }],
     passagers,
     telephone: contact.telephone ?? "",
     email: contact.email ?? "",

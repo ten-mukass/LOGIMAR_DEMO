@@ -4,7 +4,7 @@
  *
  * Règles (CAHIER_DES_CHARGES_GESTION §3.3) :
  * - le revenue manager ouvre ou ferme un palier avec un motif obligatoire ;
- * - le Flex reste toujours vendable tant qu'il reste des places : on ne peut pas fermer son dernier palier ouvert ;
+ * - le VIP reste toujours vendable tant qu'il reste des places : on ne peut pas fermer son dernier palier ouvert ;
  * - un prix déjà bloqué par un client ne change pas (le prix est figé dans la réservation au blocage).
  */
 import { meilleureOffre, ORDRE_FAMILLES, placesRestantesClasse, placesRestantesTraversee, type Occupation } from "./tarifs"
@@ -90,7 +90,7 @@ export function paliersEnVente(
   capaciteVendable: number,
   occupation: Occupation,
 ): Record<CodeFamille, ClasseReservation | null> {
-  const resultat = { ECO: null, STD: null, FLEX: null } as Record<CodeFamille, ClasseReservation | null>
+  const resultat = { ECO: null, VIP: null } as Record<CodeFamille, ClasseReservation | null>
   for (const famille of ORDRE_FAMILLES) {
     const offre = meilleureOffre(classes, famille, UN_ADULTE, capaciteVendable, occupation)
     resultat[famille] = offre.disponible ? offre.classe : null
@@ -100,11 +100,11 @@ export function paliersEnVente(
 
 export const MOTIF_MIN = 3
 
-/** Le Flex reste toujours vendable : son dernier palier ouvert ne se ferme pas. */
+/** Le VIP reste toujours vendable : son dernier palier ouvert ne se ferme pas. */
 export function fermeturePermise(classes: ClasseReservation[], classeId: string): boolean {
   const classe = classes.find((c) => c.id === classeId)
-  if (!classe || classe.familleCode !== "FLEX") return true
-  return classes.some((c) => c.familleCode === "FLEX" && c.id !== classeId && c.ouverte)
+  if (!classe || classe.familleCode !== "VIP") return true
+  return classes.some((c) => c.familleCode === "VIP" && c.id !== classeId && c.ouverte)
 }
 
 /** Refus d'un changement de palier, ou null s'il est permis. */
@@ -119,7 +119,7 @@ export function verifierChangementPalier(
   if (classe.ouverte === ouverte) return ouverte ? "Ce palier est déjà ouvert." : "Ce palier est déjà fermé."
   if (motif.trim().length < MOTIF_MIN) return "Indiquez le motif du changement."
   if (!ouverte && !fermeturePermise(classes, classeId)) {
-    return "Le Flex reste vendable tant qu’il reste des places : son dernier palier ne se ferme pas."
+    return "Le VIP reste vendable tant qu’il reste des places : son dernier palier ne se ferme pas."
   }
   return null
 }

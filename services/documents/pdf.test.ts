@@ -16,7 +16,7 @@ const billet: DonneesBilletPdf = {
   regleEnregistrement: "Tout passager arrivé après l’enregistrement ne pourra pas embarquer.",
   terminal: "[À CONFIRMER]",
   lienItineraire: null,
-  tarif: "Standard",
+  tarif: "Éco",
   passagers: [{ nom: "MBA Paul", detail: "Adulte · CNI" }],
   qr: "LGM1|LGM-7K4Q2|LBV-POG-2026-11-17-1215|abcdefghijklmnopqrstuv",
 }
@@ -52,7 +52,7 @@ describe("PDF", () => {
       emetteur: { raisonSociale: "LOGIMAR 241", adresse: "[ADRESSE]", nif: "[NIF]", rccm: "[RCCM]", regimeTva: "[TVA]", mentionsLegales: "[MENTIONS]" },
       client: { nom: "MBA Paul", telephone: "+241 07 12 34 56", email: null },
       references: ["LGM-7K4Q2"],
-      lignes: [{ libelle: "Traversée Standard, adultes", quantite: 2, prixUnitaire: 35000, montant: 70000 }],
+      lignes: [{ libelle: "Traversée Éco, adultes", quantite: 2, prixUnitaire: 35000, montant: 70000 }],
       total: 70000,
       paiement: "par Airtel Money",
     })

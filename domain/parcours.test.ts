@@ -7,8 +7,8 @@ import type { OptionCatalogue } from "./types"
 const bornes = { enfantDes: 3, adulteDes: 12 }
 
 const catalogue: OptionCatalogue[] = [
-  { code: "BAGAGE", libelle: "Bagage supplémentaire", detail: "20 kg", prix: 5000, familles: ["ECO", "STD", "FLEX"], quantiteMax: 9 },
-  { code: "GARANTIE", libelle: "Garantie modification", detail: "", prix: 3000, familles: ["ECO", "STD"], quantiteMax: 1 },
+  { code: "BAGAGE", libelle: "Bagage supplémentaire", detail: "20 kg", prix: 5000, familles: ["ECO", "VIP"], quantiteMax: 9 },
+  { code: "GARANTIE", libelle: "Garantie modification", detail: "", prix: 3000, familles: ["ECO"], quantiteMax: 1 },
 ]
 
 describe("détail du prix", () => {
@@ -22,15 +22,15 @@ describe("détail du prix", () => {
   })
 
   it("ajoute les options choisies", () => {
-    const { options, erreurs } = choisirOptions({ BAGAGE: 2, GARANTIE: 1 }, catalogue, "STD")
+    const { options, erreurs } = choisirOptions({ BAGAGE: 2, GARANTIE: 1 }, catalogue, "ECO")
     expect(erreurs).toEqual([])
     expect(totalLignes(lignesOptions(options, catalogue))).toBe(13000)
     expect(lignesOptions(options, catalogue)[0].libelle).toBe("2 × bagage supplémentaire")
   })
 
-  it("ne propose pas la garantie avec Flex et refuse les quantités hors limite", () => {
-    expect(optionsProposees(catalogue, "FLEX").map((o) => o.code)).toEqual(["BAGAGE"])
-    expect(choisirOptions({ GARANTIE: 1 }, catalogue, "FLEX").erreurs).toHaveLength(1)
+  it("ne propose pas la garantie avec le VIP et refuse les quantités hors limite", () => {
+    expect(optionsProposees(catalogue, "VIP").map((o) => o.code)).toEqual(["BAGAGE"])
+    expect(choisirOptions({ GARANTIE: 1 }, catalogue, "VIP").erreurs).toHaveLength(1)
     expect(choisirOptions({ BAGAGE: 10 }, catalogue, "ECO").erreurs).toHaveLength(1)
   })
 })

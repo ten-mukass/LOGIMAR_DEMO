@@ -104,7 +104,7 @@ export function TableauTraversees({
         </tbody>
       </Tableau>
       <p className="mt-2 text-[12px] text-gris">
-        Éco, Standard, Flex : prix en vente aujourd’hui pour un adulte, et palier (P1, P2…). Remplissage : places
+        Éco, VIP : prix en vente aujourd’hui pour un adulte, et palier (P1, P2…). Remplissage : places
         vendues ; les places bloquées par un paiement en cours sont indiquées à part.
       </p>
     </>

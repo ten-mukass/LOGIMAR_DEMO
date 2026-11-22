@@ -238,7 +238,7 @@ export function FicheTraversee({ id }: { id: string }) {
                     </td>
                     <td className="text-right print:hidden">
                       {!partie && l.classe.ouverte && !fermeturePermise(inventaire.classes, l.classe.id) ? (
-                        <span className="text-[12px] text-gris" title="Le Flex reste vendable tant qu’il reste des places.">
+                        <span className="text-[12px] text-gris" title="Le VIP reste vendable tant qu’il reste des places.">
                           Toujours ouvert
                         </span>
                       ) : !partie && (
@@ -310,7 +310,7 @@ export function FicheTraversee({ id }: { id: string }) {
         <p className="mt-2 text-[12px] text-gris">
           Occupées : places vendues et places bloquées par un paiement en cours. On vend toujours au palier ouvert le
           moins cher ; un palier épuisé laisse la place au suivant. Un prix déjà bloqué par un client ne change pas. Le
-          Flex reste toujours vendable.
+          VIP reste toujours vendable.
         </p>
       </Section>
 

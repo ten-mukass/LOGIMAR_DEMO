@@ -100,7 +100,7 @@ describe("ventes et recettes", () => {
   it("calcule remplissage, recette par siège offert et par passager", () => {
     const reservations = [
       famille,
-      reservation({ passagers: [passager("adulte"), passager("adulte")], familleCode: "STD", prixUnitaires: { adulte: 35000, enfant: 0, bebe: 0 } }),
+      reservation({ passagers: [passager("adulte"), passager("adulte")], familleCode: "VIP", prixUnitaires: { adulte: 35000, enfant: 0, bebe: 0 } }),
       reservation({ traverseeId: "T2" }),
       reservation({ statut: "bloquee", bloqueeJusquA: "2026-11-14T12:10:00+01:00" }),
     ]
@@ -130,13 +130,13 @@ describe("ventes et recettes", () => {
   it("répartit par famille et par canal, et retombe sur le total", () => {
     const reservations = [
       famille,
-      reservation({ familleCode: "FLEX", canal: "agence", moyenPaiement: "especes", prixUnitaires: { adulte: 55000, enfant: 0, bebe: 0 } }),
+      reservation({ familleCode: "VIP", canal: "agence", moyenPaiement: "especes", prixUnitaires: { adulte: 55000, enfant: 0, bebe: 0 } }),
       reservation({ statut: "annulee" }),
     ]
     const familles = repartitionParFamille(reservations, maintenant)
     expect(familles.ECO).toEqual({ reservations: 1, places: 2, passagers: 3, recette: 51000 })
-    expect(familles.FLEX.recette).toBe(55000)
-    expect(familles.STD.reservations).toBe(0)
+    expect(familles.VIP.recette).toBe(55000)
+    expect(familles.ECO.reservations + familles.VIP.reservations).toBe(2) // l'annulation ne compte pas
     const canaux = repartitionParCanal(reservations, maintenant)
     expect(canaux.web.reservations + canaux.agence.reservations + canaux.telephone.reservations).toBe(2)
   })

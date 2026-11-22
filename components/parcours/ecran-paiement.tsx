@@ -135,7 +135,7 @@ function Paiement({
     return <Interruption message={message} href={`/resultats?${versParametres(criteres)}`} libelle="Relancer la recherche" />
   }
 
-  // Une option n'est proposée que si elle l'est pour chaque trajet (ex. pas de garantie si l'un est en Flex).
+  // Une option n'est proposée que si elle l'est pour chaque trajet (ex. pas de garantie si l'un est en VIP).
   const proposees = optionsProposees(catalogue, reservation.familleCode).filter((o) =>
     reservations.every((r) => o.familles.includes(r.familleCode)),
   )

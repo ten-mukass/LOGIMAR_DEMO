@@ -80,7 +80,7 @@ export const parametresVentes: ParametresVentes = {
   tailleGroupe: [[1, 45], [2, 30], [3, 15], [4, 10]],
   partEnfants: 0.25,
   partBebes: 0.08,
-  preferenceFamille: [["ECO", 45], ["STD", 40], ["FLEX", 15]],
+  preferenceFamille: [["ECO", 85], ["VIP", 15]], // EXEMPLE — à remplacer par LOGIMAR
   canal: [["web", 65], ["agence", 35]],
   moyenWeb: [["airtel", 60], ["moov", 40]],
   moyenAgence: [["especes", 50], ["airtel", 30], ["moov", 20]],
@@ -250,7 +250,7 @@ function ventesTraversee(
     let dernier = demandes.at(-1)?.creeLe ?? depart - p.fenetreAnticipee.a * MS_JOUR
     while (occupation.total < t.capaciteVendable) {
       dernier += 60_000
-      vendre({ composition: { adultes: 1, enfants: 0, bebes: 0 }, famille: "STD", creeLe: dernier })
+      vendre({ composition: { adultes: 1, enfants: 0, bebes: 0 }, famille: "ECO", creeLe: dernier })
     }
   }
   return reservations

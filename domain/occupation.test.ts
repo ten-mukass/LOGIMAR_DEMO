@@ -59,13 +59,13 @@ describe("occupation", () => {
     const occ = calculerOccupations(
       [
         reservation({ id: "a" }),
-        reservation({ id: "b", statut: "bloquee", bloqueeJusquA: finDeBlocage(maintenant, 15), classeId: "T1:STD-1" }),
+        reservation({ id: "b", statut: "bloquee", bloqueeJusquA: finDeBlocage(maintenant, 15), classeId: "T1:ECO-2" }),
         reservation({ id: "c", statut: "expiree" }),
         reservation({ id: "d", statut: "annulee" }),
       ],
       maintenant,
     ).get("T1")
-    expect(occ).toEqual({ total: 4, parClasse: { "T1:ECO-1": 2, "T1:STD-1": 2 } })
+    expect(occ).toEqual({ total: 4, parClasse: { "T1:ECO-1": 2, "T1:ECO-2": 2 } })
   })
 
   it("ignore les réservations créées après l'instant donné", () => {
@@ -89,7 +89,7 @@ describe("réservations du visiteur et ventes d'exemple", () => {
   })
 
   it("respecte la capacité de la traversée", () => {
-    const exemples = [reservation({ id: "e1" }), reservation({ id: "e2", classeId: "T1:FLEX-1" })]
+    const exemples = [reservation({ id: "e1" }), reservation({ id: "e2", classeId: "T1:VIP-1" })]
     const { occupation } = occupationAvecPriorite([], exemples, 3, quotas, maintenant)
     expect(occupation.total).toBe(2)
   })
