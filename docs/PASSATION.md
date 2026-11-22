@@ -23,7 +23,7 @@
 | 5 bis | Back-office : menu latéral réductible (demandé le 22/11/2026) | Fusionnée (PR #9), en production |
 | 5 ter | Deux tarifs, Éco et VIP (décision du fondateur, 22/11/2026) | Fusionnée (PR #10), en production |
 | 6 | Recette | À faire |
-| 7 | Brancher l'application sur la base Supabase | Plan rédigé (`docs/PLAN_BASE_DE_DONNEES.md`), à valider : étapes A à E, décisions en fin de document |
+| 7 | Brancher l'application sur la base Supabase | Plan validé (`docs/PLAN_BASE_DE_DONNEES.md`) ; étape A (fondations) en PR : schéma, `PostgresRepository`, page `/preview/base` ; migrations à appliquer après relecture |
 
 ### Étape 3 : contenu
 
@@ -75,6 +75,15 @@ Besoin : le contrôleur scanne le QR du billet, le passager monte si le scan est
 - Clé des données du navigateur passée en `logimar-demo:v3:donnees` : les réservations et réglages enregistrés avant le changement (avec Standard ou Flex) sont abandonnés. La session de gestion et la préférence du menu sont conservées.
 - Cahiers des charges : une note en tête signale la décision ; leur texte n'a pas été réécrit.
 
+### Étape 7A : fondations de la base (23/11/2026)
+
+- `services/serveur/` (côté serveur uniquement) : `sql.ts` (interface `Sql` : requête paramétrée, script, transaction), `connexion.ts` (bibliothèque `postgres` sur `POSTGRES_URL`, pooler Supabase en mode transaction donc `prepare: false`, SSL), `sql-pglite.ts` (PGlite, tests seulement), `migrations.ts` + `migrations/0001-schema-initial.ts`, `exemples.ts` (chargement depuis `data/seed/`), `controle.ts` (état et comparaison avec la démo).
+- Schéma : référentiel (avec `rang` pour garder l'ordre de `data/seed/`), traversées, paliers, changements de paliers, commandes, réservations (`exemple` = vente d'exemple), passagers, options, paiements, compteurs de factures (numéro sans trou), envois, embarquements (unique traversée + passager), scans, clôtures. RLS sur toutes les tables sans aucune règle : la clé publique ne lit rien.
+- `services/repository/postgres-repository.ts` : même interface et mêmes règles que `DemoRepository` (vraies réservations d'abord, ventes d'exemple ensuite, palier fermé au moment de l'achat). Comptes clients : pas encore (renvoie « absent » ou une erreur claire). Côté serveur, `listerReservationsLocales` renvoie les vraies réservations.
+- Tests (`postgres-repository.test.ts`, PGlite) : le schéma s'applique une fois, RLS partout, et la base montre exactement ce que montre la démo (référentiel, traversées, inventaires de toutes les traversées à trois dates, réservations retenues, répartition, fermeture de palier), plus les écritures (réservation, embarquement sans doublon, commande, facture sans trou, paiement, envoi, scans, clôture, rechargement des exemples).
+- Page `/preview/base` : n'existe que si `VERCEL_ENV = preview` (ou en développement local) ; ailleurs, 404. Boutons « Appliquer les migrations » et « Charger les données d'exemple » (actions serveur qui refusent hors Preview).
+- Le site n'utilise pas encore la base : c'est l'étape B.
+
 ## Méthode de travail (validée)
 
 - Une PR par étape depuis `demo-v1` ; l'utilisateur relit la Preview et fusionne par *merge commit*. **Ne jamais pousser l'étape suivante tant que la PR précédente est ouverte** (les commits s'ajouteraient à cette PR) : commiter en local et surveiller `git ls-remote origin main`.
@@ -102,6 +111,7 @@ Besoin : le contrôleur scanne le QR du billet, le passager monte si le scan est
 - Le code d'accès est dans le code envoyé au navigateur : il protège l'écran, pas les données (toutes les données de la démo sont dans le navigateur).
 - Embarquement : la caméra exige https (ou localhost) ; la démo partage les embarquements entre onglets du même navigateur seulement (deux téléphones ne se voient pas : en production, synchronisation serveur sans doublon).
 - Outil de prévisualisation : il lit `.claude/launch.json` dans le dossier de la session ; une copie existe dans le dépôt, ignorée par git (`.git/info/exclude`).
+- Base Supabase : Preview et production partagent la même base (offre gratuite). Ne jamais écrire les valeurs des variables `POSTGRES_*` / `SUPABASE_*` ; en local, sans `.env.local`, la page de contrôle affiche « base non configurée ». Le pooler Supabase (mode transaction) refuse les requêtes préparées : garder `prepare: false`. L'offre gratuite met le projet en pause après 7 jours sans activité (tâche quotidienne prévue à l'étape E).
 
 ## Étapes suivantes (rappel de `docs/PLAN_DEMO.md`)
 
