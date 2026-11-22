@@ -51,7 +51,7 @@ export default async function PageControleBase({ searchParams }: { searchParams:
               {etat.migrations.map((m) => (
                 <li key={m.version}>
                   {m.version} — {m.description} :{" "}
-                  {m.appliqueeLe ? <span className="text-foret-texte">appliquée le {new Date(m.appliqueeLe).toLocaleString("fr-FR")}</span> : <strong>à appliquer</strong>}
+                  {m.appliqueeLe ? <span className="text-foret-texte">appliquée le {new Date(m.appliqueeLe).toLocaleString("fr-FR", { timeZone: "Africa/Libreville" })}</span> : <strong>à appliquer</strong>}
                 </li>
               ))}
             </ul>

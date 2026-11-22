@@ -47,6 +47,12 @@ const parId = (a: { id: string }, b: { id: string }) => a.id.localeCompare(b.id)
 
 beforeAll(async () => {
   ;({ sql, fermer } = await basePglite())
+  // Comme sur Supabase : rôles publics qui reçoivent par défaut des droits sur les nouvelles tables.
+  await sql.executer(`
+    create role anon;
+    create role authenticated;
+    alter default privileges in schema public grant all on tables to anon, authenticated;
+  `)
   await appliquerMigrations(sql)
   bilan = await chargerExemples(sql, seed)
   base = new PostgresRepository(sql, seed)
@@ -80,6 +86,13 @@ describe("schéma et chargement", () => {
     )
     expect(tables.length).toBeGreaterThan(20)
     expect(tables.filter((t) => !t.relrowsecurity).map((t) => t.relname)).toEqual([])
+  })
+
+  it("ne laisse aucun droit aux rôles publics de Supabase", async () => {
+    const droits = await sql.requete(
+      "select table_name, privilege_type from information_schema.role_table_grants where table_schema = 'public' and grantee in ('anon', 'authenticated')",
+    )
+    expect(droits).toEqual([])
   })
 })
 
