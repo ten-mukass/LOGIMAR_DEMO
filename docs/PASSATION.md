@@ -1,11 +1,12 @@
 # Passation — démonstration LOGIMAR 241
 
-État au 22 novembre 2026 (menu latéral fusionné ; passage à deux tarifs Éco et VIP en PR).
+État au 22 novembre 2026 (tarifs Éco et VIP fusionnés ; base Supabase créée et reliée à Vercel ; plan de branchement à valider).
 
 ## Où sont les choses
 
 - Dépôt GitHub : `ten-mukass/LOGIMAR_DEMO`. Copie locale : `~/Developer/LOGIMAR_DEMO`, branche de travail `demo-v1`.
 - Vercel : projet `logimar-demo` ; production = `main` (logimar-demo.vercel.app) ; chaque push sur `demo-v1` crée une Preview (protégée par la connexion Vercel).
+- Supabase (créé le 22/11/2026) : organisation « LOGIMAR 241 » (offre gratuite, dédiée au projet), projet `logimar-241`, région Paris `eu-west-3`, encore vide et pas utilisé par l'application. Relié à Vercel par l'intégration officielle, limitée au projet `logimar-demo` : les variables `POSTGRES_*`, `SUPABASE_*`, `NEXT_PUBLIC_SUPABASE_*` sont synchronisées automatiquement (ne jamais les recopier ni les committer). Mot de passe de la base : chez l'utilisateur.
 - Spécifications : `docs/` (`PERIMETRE_DEMO.md` fait foi). Plan validé et décisions par défaut : `docs/PLAN_DEMO.md`.
 - Serveur de développement : configuration `~/Developer/.claude/launch.json`, nom `logimar-dev`, port 3241 (à lancer avec l'outil de prévisualisation du navigateur intégré). L'outil lit `.claude/launch.json` dans le dossier de départ de la session : copier ce fichier là si la session n'a pas démarré dans `~/Developer`.
 
@@ -20,8 +21,9 @@
 | 4 | Back-office | Fusionnée (PR #5), en production ; correctif du billet PDF fusionné à part (PR #6) |
 | 5 | Embarquement : scan du QR, manifeste de bord | Fusionnée (PR #7), en production ; décodeur jsQR (iPhone) fusionné à part (PR #8) |
 | 5 bis | Back-office : menu latéral réductible (demandé le 22/11/2026) | Fusionnée (PR #9), en production |
-| 5 ter | Deux tarifs, Éco et VIP (décision du fondateur, 22/11/2026) | PR #10 ouverte, à relire sur la Preview |
+| 5 ter | Deux tarifs, Éco et VIP (décision du fondateur, 22/11/2026) | Fusionnée (PR #10), en production |
 | 6 | Recette | À faire |
+| 7 | Brancher l'application sur la base Supabase | Plan rédigé (`docs/PLAN_BASE_DE_DONNEES.md`), à valider : étapes A à E, décisions en fin de document |
 
 ### Étape 3 : contenu
 
