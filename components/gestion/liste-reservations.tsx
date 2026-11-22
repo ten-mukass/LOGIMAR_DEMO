@@ -261,7 +261,7 @@ export function ListeReservations() {
 
 function DetailReservation({ reservation: r, libelleOption }: { reservation: Reservation; libelleOption: (code: string) => string }) {
   return (
-    <div className="sticky left-0 grid w-[calc(100vw-7rem)] max-w-4xl gap-4 py-2 md:grid-cols-3">
+    <div className="sticky left-0 grid w-[calc(100vw-var(--menu,0px)-7rem)] max-w-4xl gap-4 py-2 md:grid-cols-3">
       <div className="md:col-span-2">
         <h3 className="mb-1 text-[13px] font-bold text-marine">Passagers</h3>
         <ul className="space-y-0.5">
