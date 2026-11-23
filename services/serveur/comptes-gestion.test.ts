@@ -62,7 +62,9 @@ describe("comptes de l'équipe", () => {
     expect(identites.get(admin.id)?.motDePasse).toBe("victoria-jet-2026")
     const second = await service.creerPremierAdministrateur({ email: "b@exemple.com", nom: "B", motDePasse: "victoria-jet-2027" })
     expect(second).toMatchObject({ ok: false })
-    expect((await service.journal()).map((e) => e.action)).toEqual(["compte-cree"])
+    const journal = await service.journal()
+    expect(journal.map((e) => e.action)).toEqual(["compte-cree"])
+    expect(journal[0].apres).toEqual({ nom: "Admin Essai", role: "Administrateur" })
   })
 
   it("laisse l'administrateur créer un compte avec un mot de passe provisoire, à changer", async () => {

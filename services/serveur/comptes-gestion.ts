@@ -175,7 +175,7 @@ export class ServiceComptesGestion {
          values ($1, $2, $3, $4, true, $5, $6::timestamptz, $7, $6::timestamptz)`,
         [nouveau.id, nouveau.email, nouveau.nom, nouveau.role, doitChanger, nouveau.creeLe, auteur?.id ?? null],
       )
-      await this.journaliser(sql, auteur, "compte-cree", nouveau.email, null, { nom: nouveau.nom, role: nouveau.role })
+      await this.journaliser(sql, auteur, "compte-cree", nouveau.email, null, { nom: nouveau.nom, role: LIBELLES_ROLES[nouveau.role] })
     })
     return { ok: true, valeur: nouveau }
   }

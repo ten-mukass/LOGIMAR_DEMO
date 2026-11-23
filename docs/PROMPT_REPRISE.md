@@ -1,6 +1,6 @@
 # Prompt de reprise - nouvelle conversation Claude Code
 
-Mis à jour le 23 novembre 2026, après la fusion de l'étape 7B (PR #12) ; montée de version de Next.js en PR. À coller dans une nouvelle conversation Claude Code ouverte dans `~/Developer/LOGIMAR_DEMO`. À mettre à jour à chaque passation, avec `PASSATION.md`.
+Mis à jour le 23 novembre 2026 : 7B et Next.js 16.4.6 fusionnés (PR #12, #13), étape 7C en PR #14. À coller dans une nouvelle conversation Claude Code ouverte dans `~/Developer/LOGIMAR_DEMO`. À mettre à jour à chaque passation, avec `PASSATION.md`.
 
 ```text
 Tu reprends le projet LOGIMAR 241, dans ~/Developer/LOGIMAR_DEMO, branche demo-v1. C'est la démonstration de l'application de réservation en ligne de LOGIMAR 241 (catamaran Victoria Jet, Libreville - Port-Gentil), à présenter au fondateur de LOGIMAR. Réponds en français.
@@ -15,12 +15,11 @@ Tu reprends le projet LOGIMAR 241, dans ~/Developer/LOGIMAR_DEMO, branche demo-v
 - Étape 7A fusionnée (PR #11, commit 499b377) : schéma PostgreSQL, PostgresRepository testé sur PGlite, page de contrôle /preview/base (Preview seulement, 404 en production). Base Supabase logimar-241 : migrations 0001 et 0002 appliquées, données d'exemple chargées et identiques à la démo, RLS sur toutes les tables, aucune règle d'accès, aucun droit pour anon et authenticated.
 - Étape 7B (parcours client sur la base) : fusionnée (PR #12, commit b629fce), active sur la Preview seulement (aiguillage services/mode-donnees.ts). La production garde la démo du navigateur jusqu'aux étapes C et D. Vérifié sur la Preview : réservation au téléphone retrouvée sur l'ordinateur. Fonctions Vercel réglées sur Paris (vercel.json, cdg1) : parcours fluide.
 - Le compte du fondateur est prévu à l'étape C.
-- Montée de version de Next.js 16.1.6 → 16.4.6 : PR ouverte (0 faille dans les dépendances livrées).
+- Next.js 16.1.6 → 16.4.6 : fusionné (PR #13, 0 faille dans les dépendances livrées).
 - Reste aussi : étape 6 (recette) et les points à confirmer par LOGIMAR (fin de la passation).
 
 3. Objectif de cette conversation
-- Si la PR de montée de version de Next.js est encore ouverte : attendre ma demande de fusion (ne rien pousser d'autre sur demo-v1).
-- Étape C (comptes de l'équipe) : faite et commitée en local sur demo-v1, pas encore poussée. Après la fusion de la PR de Next.js : la pousser, ouvrir sa PR, puis suivre l'ordre de mise en service de docs/PASSATION.md (« Étape 7C ») : accord pour la migration 0003 et pour couper les inscriptions publiques de Supabase, mon compte administrateur créé par moi sur /preview/base, essais, compte du fondateur, fusion.
+- Étape C (comptes de l'équipe) : PR #14 ouverte ; migration 0003 appliquée, inscriptions publiques de Supabase coupées, mon compte administrateur créé. Reste : mon essai d'un rôle restreint avec un compte d'essai, la création du compte du fondateur, puis la fusion sur ma demande. Ensuite, étape D (back-office et scan sur la base).
 
 4. Méthode (toujours en vigueur)
 - Une PR par étape depuis demo-v1. Tu ouvres la PR toi-même dans le navigateur intégré (gh n'est pas installé), description terminée par la ligne d'attribution Claude Code. Je relis la Preview ; la fusion se fait par merge commit, et seulement quand je te le demande.
