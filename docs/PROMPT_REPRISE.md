@@ -1,6 +1,6 @@
 # Prompt de reprise - nouvelle conversation Claude Code
 
-Mis à jour le 23 novembre 2026, étape 7B en PR (active sur la Preview seulement). À coller dans une nouvelle conversation Claude Code ouverte dans `~/Developer/LOGIMAR_DEMO`. À mettre à jour à chaque passation, avec `PASSATION.md`.
+Mis à jour le 23 novembre 2026, après la fusion de l'étape 7B (PR #12) ; montée de version de Next.js en PR. À coller dans une nouvelle conversation Claude Code ouverte dans `~/Developer/LOGIMAR_DEMO`. À mettre à jour à chaque passation, avec `PASSATION.md`.
 
 ```text
 Tu reprends le projet LOGIMAR 241, dans ~/Developer/LOGIMAR_DEMO, branche demo-v1. C'est la démonstration de l'application de réservation en ligne de LOGIMAR 241 (catamaran Victoria Jet, Libreville - Port-Gentil), à présenter au fondateur de LOGIMAR. Réponds en français.
@@ -13,12 +13,13 @@ Tu reprends le projet LOGIMAR 241, dans ~/Developer/LOGIMAR_DEMO, branche demo-v
 2. Où on en est (23/11/2026)
 - Étapes 0 à 5 de la démo fusionnées et en production (logimar-demo.vercel.app), plus le menu latéral du back-office (PR #9) et les deux tarifs Éco et VIP (PR #10 : le Standard est supprimé, le VIP reprend l'ancien Flex).
 - Étape 7A fusionnée (PR #11, commit 499b377) : schéma PostgreSQL, PostgresRepository testé sur PGlite, page de contrôle /preview/base (Preview seulement, 404 en production). Base Supabase logimar-241 : migrations 0001 et 0002 appliquées, données d'exemple chargées et identiques à la démo, RLS sur toutes les tables, aucune règle d'accès, aucun droit pour anon et authenticated.
-- Étape 7B (parcours client sur la base) : PR ouverte depuis demo-v1, active sur la Preview seulement (aiguillage services/mode-donnees.ts). La production garde la démo du navigateur jusqu'aux étapes C et D. Vérifié sur la Preview : réservation au téléphone retrouvée sur l'ordinateur. Fonctions Vercel réglées sur Paris (vercel.json, cdg1) : parcours fluide.
+- Étape 7B (parcours client sur la base) : fusionnée (PR #12, commit b629fce), active sur la Preview seulement (aiguillage services/mode-donnees.ts). La production garde la démo du navigateur jusqu'aux étapes C et D. Vérifié sur la Preview : réservation au téléphone retrouvée sur l'ordinateur. Fonctions Vercel réglées sur Paris (vercel.json, cdg1) : parcours fluide.
 - Le compte du fondateur est prévu à l'étape C.
-- Reste aussi : étape 6 (recette), une petite PR de montée de version de Next.js 16.x (failles signalées par npm audit), et les points à confirmer par LOGIMAR (fin de la passation).
+- Montée de version de Next.js 16.1.6 → 16.4.6 : PR ouverte (0 faille dans les dépendances livrées).
+- Reste aussi : étape 6 (recette) et les points à confirmer par LOGIMAR (fin de la passation).
 
 3. Objectif de cette conversation
-- Si la PR de 7B est encore ouverte : attendre ma relecture et ma demande de fusion (ne rien pousser d'autre sur demo-v1).
+- Si la PR de montée de version de Next.js est encore ouverte : attendre ma demande de fusion (ne rien pousser d'autre sur demo-v1).
 - Sinon, étape C du plan (comptes de gestion, compte du fondateur) : commence par me proposer son découpage et attends ma validation.
 
 4. Méthode (toujours en vigueur)

@@ -1,6 +1,6 @@
 # Passation — démonstration LOGIMAR 241
 
-État au 23 novembre 2026 (étape 7A fusionnée ; étape 7B, parcours client sur la base, en PR et active sur la Preview seulement ; la production reste sur la démo du navigateur). Pour reprendre dans une nouvelle conversation : `docs/PROMPT_REPRISE.md`.
+État au 23 novembre 2026 (étapes 7A et 7B fusionnées ; parcours client sur la base actif sur la Preview seulement, la production reste sur la démo du navigateur ; montée de version de Next.js en PR ; prochaine étape : 7C). Pour reprendre dans une nouvelle conversation : `docs/PROMPT_REPRISE.md`.
 
 ## Où sont les choses
 
@@ -23,7 +23,7 @@
 | 5 bis | Back-office : menu latéral réductible (demandé le 22/11/2026) | Fusionnée (PR #9), en production |
 | 5 ter | Deux tarifs, Éco et VIP (décision du fondateur, 22/11/2026) | Fusionnée (PR #10), en production |
 | 6 | Recette | À faire |
-| 7 | Brancher l'application sur la base Supabase | Plan validé (`docs/PLAN_BASE_DE_DONNEES.md`) ; étape A (fondations) fusionnée (PR #11, `499b377`), en production : schéma, `PostgresRepository`, page `/preview/base`. Étape B (parcours client sur la base) : PR ouverte le 23/11/2026, active sur la Preview seulement. Base Supabase : migration 0001 appliquée et données d'exemple chargées le 23/11/2026 (80 traversées, 480 paliers, 4 005 ventes, 8 026 passagers ; identiques à la démo) ; migration 0002 (retrait des droits publics) appliquée le 23/11/2026 : 0 table sans RLS, 0 règle d'accès, 0 droit pour `anon` et `authenticated`. Étapes B à E à faire |
+| 7 | Brancher l'application sur la base Supabase | Plan validé (`docs/PLAN_BASE_DE_DONNEES.md`) ; étape A (fondations) fusionnée (PR #11, `499b377`), en production : schéma, `PostgresRepository`, page `/preview/base`. Étape B (parcours client sur la base) fusionnée le 23/11/2026 (PR #12, `b629fce`), active sur la Preview seulement ; production vérifiée (mode démo, fonctions à Paris). Base Supabase : migration 0001 appliquée et données d'exemple chargées le 23/11/2026 (80 traversées, 480 paliers, 4 005 ventes, 8 026 passagers ; identiques à la démo) ; migration 0002 (retrait des droits publics) appliquée le 23/11/2026 : 0 table sans RLS, 0 règle d'accès, 0 droit pour `anon` et `authenticated`. Étapes B à E à faire |
 
 ### Étape 3 : contenu
 
@@ -86,7 +86,7 @@ Besoin : le contrôleur scanne le QR du billet, le passager monte si le scan est
 - Appliquer une migration (après relecture de la PR et accord de l'utilisateur) : sur la Preview, `/preview/base`, bouton « Appliquer les migrations ». Contrôle de sécurité, en lecture seule, dans l'éditeur SQL de Supabase : nombre de tables `public` sans RLS (`pg_class.relrowsecurity`), de règles (`pg_policies`), de droits de `anon` et `authenticated` (`information_schema.role_table_grants`) et de droits par défaut (`pg_default_acl`) ; les quatre valent 0 le 23/11/2026.
 - Le site n'utilise pas encore la base : c'est l'étape B.
 
-### Étape 7B : parcours client sur la base (PR ouverte le 23/11/2026)
+### Étape 7B : parcours client sur la base (fusionnée le 23/11/2026, PR #12)
 
 Décision du 23/11/2026 : **active sur la Preview seulement**. La production garde la démo du navigateur jusqu'aux étapes C (comptes de gestion) et D (back-office et scan sur la base) : sinon le back-office et le scan, restés dans le navigateur, ne verraient plus les réservations du site, et brancher le back-office sur la base derrière le code `241241` exposerait les données des passagers.
 
@@ -126,7 +126,7 @@ Décision du 23/11/2026 : **active sur la Preview seulement**. La production gar
 - Ne pas lancer `next build` pendant que le serveur de développement tourne (dossier `.next` partagé : cache Turbopack corrompu). Arrêter la prévisualisation avant.
 - `crypto.subtle` et `crypto.randomUUID` exigent HTTPS ou localhost (pas d'accès en `http` depuis un téléphone sur le réseau local).
 - Les ventes d'exemple dépendent de la date réelle : le remplissage progresse avec le temps ; elles cèdent la place aux réservations du visiteur (pas de surréservation).
-- `npm audit` : failles connues dans `next` 16.1.6 (antérieures au projet) ; recommander une montée de version 16.x dans une petite PR à part.
+- `npm audit` : Next.js monté de 16.1.6 à 16.4.6 le 23/11/2026 (PR à part) : 0 faille dans les dépendances livrées (`npm audit --omit=dev`) ; restent 7 alertes modérées dans l'outillage d'eslint (`minimatch` sous `@typescript-eslint`), sans effet sur le site.
 - Back-office : une vente d'exemple prévue dans un palier qui était fermé au moment de son achat n'a pas lieu (elle n'est pas reportée sur un autre palier). Les ventes déjà faites avant la fermeture restent.
 - Back-office : le titre d'une page placée dans le même segment qu'un `layout` n'hérite pas du modèle de titre de ce layout (d'où `title.absolute` sur `/admin`).
 - Le code d'accès est dans le code envoyé au navigateur : il protège l'écran, pas les données (toutes les données de la démo sont dans le navigateur).
@@ -136,10 +136,11 @@ Décision du 23/11/2026 : **active sur la Preview seulement**. La production gar
 
 ## Étapes suivantes
 
-- **7B — Parcours client sur la base** : PR ouverte, à relire sur la Preview puis à fusionner (la production n'en est pas changée). Région des fonctions réglée sur Paris (`vercel.json`).
+- **7B** : fusionnée (PR #12).
+- **Montée de version de Next.js** (16.1.6 → 16.4.6) : PR ouverte le 23/11/2026.
+- **7C — Comptes de gestion** : prochaine ; découpage à proposer puis à valider.
 - Puis **C** (vrais comptes de gestion, création du compte du fondateur ; le plan permet de la faire passer avant B), **D** (back-office et embarquement partagés entre appareils), **E** (tâche quotidienne, qui garde aussi la base active).
 - **6 — Recette** : tablette et ordinateur, accessibilité, console, scénario de présentation dans le README.
-- Petite PR à part : montée de version de Next.js 16.x (`npm audit`).
 - Proposé, pas encore demandé (« pas maintenant ») : un guide pour que le fondateur teste le tableau de bord et le scan.
 
 ## Points à confirmer par LOGIMAR
@@ -157,4 +158,5 @@ Sens des traversées par jour (hypothèse : deux par jour), capacité du Victori
 - Fait : parcours client sur le serveur et la base (actions serveur, transactions, paiement simulé serveur, Mes billets), tests PGlite, vérification téléphone → ordinateur sur la Preview.
 - Décidé : 7B active sur la Preview seulement ; production sur la démo jusqu'à C et D ; pas de migration (identifiant de réservation comme clé d'accès).
 - Décidé aussi : fonctions Vercel à Paris (`cdg1`).
-- Reste : relecture et fusion de la PR, étapes C, D, E.
+- Fusionné : PR #12 (`b629fce`). Montée de version de Next.js 16.4.6 en PR.
+- Reste : étapes C, D, E.
