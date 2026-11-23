@@ -43,7 +43,7 @@ import type {
   Traversee,
 } from "@/domain/types"
 import { iso, isoOuNull, json, jourOuNull, type Ligne, type Sql } from "../serveur/sql"
-import type { FiltreTraversees, Inventaire, Referentiel, Repository } from "./repository"
+import type { FiltreTraversees, Inventaire, Referentiel, Repository, Verrous } from "./repository"
 
 const MS_JOUR = 86_400_000
 
@@ -202,6 +202,25 @@ export class PostgresRepository implements Repository {
     /** Contenus restés dans le code (textes, société, opérateurs…) et valeurs par défaut. */
     private readonly seed: Seed,
   ) {}
+
+  /**
+   * Transaction en base. Les traversées puis les paiements sont verrouillés dans l'ordre des identifiants
+   * (deux transactions ne s'attendent jamais l'une l'autre en sens inverse). Le Repository passé à `travail`
+   * écrit dans la transaction ; une erreur annule tout.
+   */
+  async transaction<R>(verrous: Verrous, travail: (repository: Repository) => Promise<R>): Promise<R> {
+    return this.sql.transaction(async (sql) => {
+      const traversees = [...new Set(verrous.traversees ?? [])].sort()
+      const paiements = [...new Set(verrous.paiements ?? [])].sort()
+      if (traversees.length > 0) {
+        await sql.requete(`select id from traversees where id in ${DANS(1)} order by id for update`, [JSON.stringify(traversees)])
+      }
+      if (paiements.length > 0) {
+        await sql.requete(`select id from paiements where id in ${DANS(1)} order by id for update`, [JSON.stringify(paiements)])
+      }
+      return travail(new PostgresRepository(sql, this.seed))
+    })
+  }
 
   // Lectures internes ------------------------------------------------------
 

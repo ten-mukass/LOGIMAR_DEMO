@@ -1,6 +1,10 @@
 /**
  * Choix des implémentations : seul endroit à modifier pour passer de la démo à la production
  * (PostgreSQL, AirtelMoneyProvider, MoovMoneyProvider, côté serveur).
+ *
+ * Étape 7B : quand les données sont en base (services/mode-donnees.ts), le parcours client passe par le
+ * serveur (RepositoryDistant, ServiceReservationDistant) ; comptes clients, back-office et embarquement
+ * restent sur la démo du navigateur jusqu'aux étapes C et D.
  */
 import { seed } from "@/data/seed"
 import type { Operateur, PaymentProvider } from "./paiement/payment-provider"
@@ -14,12 +18,23 @@ import { CodeDemoAccesGestion, type AccesGestion } from "./gestion/acces-gestion
 import { ServiceGestion } from "./gestion/service-gestion"
 import { maintenant } from "./horloge"
 import { PreviewNotificationService } from "./notification/preview-notification-service"
+import { donneesEnBase } from "./mode-donnees"
+import { RepositoryDistant } from "./repository/repository-distant"
 import { ServiceReservation } from "./reservation/service-reservation"
+import { ServiceReservationDistant, type ParcoursReservation } from "./reservation/service-reservation-distant"
 import { stockageNavigateur } from "./stockage"
 
 const stockage = stockageNavigateur()
 
-export const repository: Repository = new DemoRepository(seed, stockage)
+/** Données de la démo dans le navigateur (tout le site en mode démo ; comptes, gestion et scan en mode base). */
+const repositoryLocal = new DemoRepository(seed, stockage)
+const distant = donneesEnBase ? new RepositoryDistant(repositoryLocal, stockage) : null
+
+/** Back-office et embarquement : sur la démo du navigateur jusqu'à l'étape D. */
+export const repositoryGestion: Repository = repositoryLocal
+
+/** Repository du site client. */
+export const repository: Repository = distant ?? repositoryLocal
 
 function aleatoireCrypto(): number {
   return crypto.getRandomValues(new Uint32Array(1))[0] / 2 ** 32
@@ -32,7 +47,7 @@ function operateurSimule(code: Operateur): PaymentProvider {
     horloge: maintenant,
     // Le « webhook » de la démo : l'opérateur simulé rappelle directement le service.
     envoyerCallback: (operateur, contenu) => {
-      void serviceReservation.traiterCallback(operateur, contenu)
+      void serviceReservationLocal.traiterCallback(operateur, contenu)
     },
     planifier: (action, delaiMs) => {
       setTimeout(action, delaiMs)
@@ -44,14 +59,16 @@ const genererId = () => crypto.randomUUID()
 
 export const notifications = new PreviewNotificationService(repository, maintenant, genererId)
 
-export const serviceReservation = new ServiceReservation({
-  repository,
+const serviceReservationLocal = new ServiceReservation({
+  repository: repositoryLocal,
   operateurs: { airtel: operateurSimule("airtel"), moov: operateurSimule("moov") },
   notifications,
   horloge: maintenant,
   aleatoire: aleatoireCrypto,
   genererId,
 })
+
+export const serviceReservation: ParcoursReservation = distant ? new ServiceReservationDistant(distant) : serviceReservationLocal
 
 export const auth = new LocalAuthService({
   repository,
@@ -62,7 +79,12 @@ export const auth = new LocalAuthService({
   genererId,
 })
 
-export const billets = new ServiceBillets({ repository, auth, stockage })
+export const billets = new ServiceBillets({
+  repository,
+  auth,
+  stockage,
+  trouver: distant ? (reference, contact) => distant.rechercherBillet(reference, contact) : undefined,
+})
 
 /** Back-office : accès par code de démonstration, lecture des ventes et réglage des paliers. */
 export const accesGestion: AccesGestion = new CodeDemoAccesGestion({
@@ -72,11 +94,11 @@ export const accesGestion: AccesGestion = new CodeDemoAccesGestion({
   horloge: maintenant,
 })
 
-export const serviceGestion = new ServiceGestion({ repository, horloge: maintenant, genererId, auteur: seed.gestion.auteurDemo })
+export const serviceGestion = new ServiceGestion({ repository: repositoryLocal, horloge: maintenant, genererId, auteur: seed.gestion.auteurDemo })
 
 /** Embarquement : contrôle des billets à la passerelle et manifeste de bord. */
 export const serviceEmbarquement = new ServiceEmbarquement({
-  repository,
+  repository: repositoryLocal,
   horloge: maintenant,
   genererId,
   cleSignature: seed.cleSignatureBilletDemo,
@@ -86,6 +108,8 @@ export const serviceEmbarquement = new ServiceEmbarquement({
 /** Clé de signature des QR codes (démo : publique ; production : signature côté serveur). */
 export const cleSignatureBillet = seed.cleSignatureBilletDemo
 
+export { donneesEnBase } from "./mode-donnees"
+export type { ParcoursReservation } from "./reservation/service-reservation-distant"
 export type { FiltreTraversees, Inventaire, Referentiel, Repository } from "./repository/repository"
 export type { CommandeDetaillee, DemandeBlocage, Resultat } from "./reservation/service-reservation"
 export type { EtatSession } from "./auth/auth-service"

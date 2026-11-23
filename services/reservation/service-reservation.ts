@@ -140,72 +140,78 @@ export class ServiceReservation {
     const telephone = demande.telephone.trim() ? formaterTelephone(demande.telephone) : null
     const email = demande.email.trim() ? demande.email.trim().toLowerCase() : null
     const bloqueeJusquA = finDeBlocage(maintenant, config.dureeBlocageMinutes)
-    const inventaires = await repository.listerInventaires(
-      traversees.map((t) => t.id),
-      maintenant,
-    )
-    const reservations: Reservation[] = []
-    let prixModifie = false
-    for (const [i, traversee] of traversees.entries()) {
-      const segment = demande.segments[i]
-      const inventaire = inventaires.find((inv) => inv.traversee.id === traversee.id)
-      if (!inventaire) return refus("introuvable")
-      const offre = meilleureOffre(
-        inventaire.classes,
-        segment.familleCode,
-        composition,
-        traversee.capaciteVendable,
-        inventaire.occupation,
+    // Places relues et enregistrées sous verrou : deux ventes simultanées ne prennent jamais la même place.
+    return repository.transaction({ traversees: traversees.map((t) => t.id) }, async (repository) => {
+      const inventaires = await repository.listerInventaires(
+        traversees.map((t) => t.id),
+        maintenant,
       )
-      if (!offre.disponible) return refus(offre.raison)
-      if (offre.total !== segment.totalAffiche) prixModifie = true
-      const id = this.d.genererId()
-      reservations.push({
-        id,
-        commandeId,
-        reference: "",
-        traverseeId: traversee.id,
-        familleCode: segment.familleCode,
-        classeId: offre.classe.id,
-        statut: "bloquee",
+      const reservations: Reservation[] = []
+      let prixModifie = false
+      for (const [i, traversee] of traversees.entries()) {
+        const segment = demande.segments[i]
+        const inventaire = inventaires.find((inv) => inv.traversee.id === traversee.id)
+        if (!inventaire) return refus("introuvable")
+        const offre = meilleureOffre(
+          inventaire.classes,
+          segment.familleCode,
+          composition,
+          traversee.capaciteVendable,
+          inventaire.occupation,
+        )
+        if (!offre.disponible) return refus(offre.raison)
+        if (offre.total !== segment.totalAffiche) prixModifie = true
+        const id = this.d.genererId()
+        reservations.push({
+          id,
+          commandeId,
+          reference: "",
+          traverseeId: traversee.id,
+          familleCode: segment.familleCode,
+          classeId: offre.classe.id,
+          statut: "bloquee",
+          telephone,
+          email,
+          passagers: demande.passagers.map((p, n) => ({
+            id: `${id}-p${n + 1}`,
+            categorie: p.categorie,
+            nom: p.nom.trim().toUpperCase(),
+            prenom: p.prenom.trim(),
+            dateNaissance: p.categorie === "adulte" ? null : p.dateNaissance,
+            typePiece: p.categorie === "adulte" && p.typePiece ? p.typePiece : null,
+            numeroPiece: p.categorie === "adulte" ? p.numeroPiece.trim().toUpperCase() : null,
+          })),
+          prixUnitaires: offre.prixUnitaires,
+          options: [],
+          total: offre.total,
+          devise: "XAF",
+          bloqueeJusquA,
+          canal: "web",
+          moyenPaiement: null,
+          creeLe: maintenant.toISOString(),
+        })
+      }
+
+      const commande: Commande = {
+        id: commandeId,
+        reservationIds: reservations.map((r) => r.id),
         telephone,
         email,
-        passagers: demande.passagers.map((p, n) => ({
-          id: `${id}-p${n + 1}`,
-          categorie: p.categorie,
-          nom: p.nom.trim().toUpperCase(),
-          prenom: p.prenom.trim(),
-          dateNaissance: p.categorie === "adulte" ? null : p.dateNaissance,
-          typePiece: p.categorie === "adulte" && p.typePiece ? p.typePiece : null,
-          numeroPiece: p.categorie === "adulte" ? p.numeroPiece.trim().toUpperCase() : null,
-        })),
-        prixUnitaires: offre.prixUnitaires,
-        options: [],
-        total: offre.total,
-        devise: "XAF",
-        bloqueeJusquA,
-        canal: "web",
-        moyenPaiement: null,
+        statut: "en-cours",
+        total: reservations.reduce((s, r) => s + r.total, 0),
+        numeroFacture: null,
+        factureEmiseLe: null,
+        clientId: demande.clientId ?? null,
         creeLe: maintenant.toISOString(),
-      })
-    }
-
-    const commande: Commande = {
-      id: commandeId,
-      reservationIds: reservations.map((r) => r.id),
-      telephone,
-      email,
-      statut: "en-cours",
-      total: reservations.reduce((s, r) => s + r.total, 0),
-      numeroFacture: null,
-      factureEmiseLe: null,
-      clientId: demande.clientId ?? null,
-      creeLe: maintenant.toISOString(),
-    }
-    // Tout ou rien : rien n'est enregistré si un trajet n'est pas disponible.
-    for (const r of reservations) await repository.enregistrerReservation(r)
-    await repository.enregistrerCommande(commande)
-    return { ok: true, valeur: { commande, reservations, prixModifie } }
+      }
+      // Tout ou rien : rien n'est enregistré si un trajet n'est pas disponible.
+      // La commande d'abord (les réservations la référencent en base), puis une seconde fois pour fixer
+      // l'ordre aller / retour une fois les réservations enregistrées.
+      await repository.enregistrerCommande(commande)
+      for (const r of reservations) await repository.enregistrerReservation(r)
+      await repository.enregistrerCommande(commande)
+      return { ok: true, valeur: { commande, reservations, prixModifie } }
+    })
   }
 
   /** Lit une commande et ses réservations, en passant à « expirée » ce dont le blocage est dépassé. */
@@ -316,26 +322,40 @@ export class ServiceReservation {
 
   /** Applique une confirmation ou un refus, une seule fois. */
   private async appliquer(evenement: EvenementPaiement): Promise<void> {
-    const { repository, horloge } = this.d
-    const paiement = await repository.trouverPaiementParTransaction(evenement.refTransaction)
-    if (!paiement || paiement.statut !== "en-attente") return // déjà traité : idempotence
-    const maintenant = horloge()
+    const trouve = await this.d.repository.trouverPaiementParTransaction(evenement.refTransaction)
+    if (!trouve || trouve.statut !== "en-attente") return // déjà traité : idempotence
+    // Paiement verrouillé et relu : deux confirmations simultanées n'émettent les billets qu'une fois ;
+    // références et numéro de facture sont pris dans la même transaction (pas de trou si elle échoue).
+    const emission = await this.d.repository.transaction({ paiements: [trouve.id] }, (repository) =>
+      this.emettre(repository, trouve.id, evenement),
+    )
+    if (emission) await this.envoyerConfirmation(emission.commande, emission.reservations)
+  }
+
+  private async emettre(
+    repository: Repository,
+    paiementId: string,
+    evenement: EvenementPaiement,
+  ): Promise<{ commande: Commande; reservations: Reservation[] } | null> {
+    const paiement = await repository.getPaiement(paiementId)
+    if (!paiement || paiement.statut !== "en-attente") return null
+    const maintenant = this.d.horloge()
     await repository.enregistrerPaiement({
       ...paiement,
       statut: evenement.statut,
       refOperateur: evenement.refOperateur,
       majLe: maintenant.toISOString(),
     })
-    if (evenement.statut !== "reussi") return
+    if (evenement.statut !== "reussi") return null
 
     const commande = await repository.getCommande(paiement.commandeId)
     // En production : un paiement confirmé après expiration du blocage déclenche un remboursement.
-    if (!commande || commande.statut !== "en-cours") return
+    if (!commande || commande.statut !== "en-cours") return null
     const emises: Reservation[] = []
     for (const rid of commande.reservationIds) {
       const r = await repository.getReservation(rid)
       if (!r || r.statut !== "bloquee") continue
-      const emise: Reservation = { ...r, statut: "emise", reference: await this.nouvelleReference(), bloqueeJusquA: null }
+      const emise: Reservation = { ...r, statut: "emise", reference: await this.nouvelleReference(repository), bloqueeJusquA: null }
       await repository.enregistrerReservation(emise)
       emises.push(emise)
     }
@@ -346,7 +366,7 @@ export class ServiceReservation {
       factureEmiseLe: maintenant.toISOString(),
     }
     await repository.enregistrerCommande(payee)
-    await this.envoyerConfirmation(payee, emises)
+    return { commande: payee, reservations: emises }
   }
 
   /** E-mail avec billet et facture si une adresse a été donnée. Ne bloque jamais l'émission. */
@@ -383,9 +403,9 @@ export class ServiceReservation {
     }
   }
 
-  private async nouvelleReference(): Promise<string> {
+  private async nouvelleReference(repository: Repository): Promise<string> {
     let reference = genererReference(this.d.aleatoire)
-    while (await this.d.repository.referenceExiste(reference)) reference = genererReference(this.d.aleatoire)
+    while (await repository.referenceExiste(reference)) reference = genererReference(this.d.aleatoire)
     return reference
   }
 }

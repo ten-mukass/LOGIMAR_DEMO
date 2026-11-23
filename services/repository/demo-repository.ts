@@ -27,7 +27,7 @@ import type {
 import type { Seed } from "@/data/seed"
 import { genererVentes } from "@/data/seed/ventes"
 import { lireJson, stockageMemoire, type Stockage } from "../stockage"
-import type { FiltreTraversees, Inventaire, Referentiel, Repository } from "./repository"
+import type { FiltreTraversees, Inventaire, Referentiel, Repository, Verrous } from "./repository"
 
 export interface DonneesDemo {
   traversees: Traversee[]
@@ -151,6 +151,11 @@ export class DemoRepository implements Repository {
     }
     resultat.push(...d.reservations.filter((r) => !ids || ids.has(r.traverseeId)))
     return resultat
+  }
+
+  /** Un seul navigateur, des écritures synchrones : rien à verrouiller. */
+  async transaction<R>(_verrous: Verrous, travail: (repository: Repository) => Promise<R>): Promise<R> {
+    return travail(this)
   }
 
   async getReferentiel(): Promise<Referentiel> {
