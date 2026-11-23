@@ -1,6 +1,6 @@
 # Passation — démonstration LOGIMAR 241
 
-État au 23 novembre 2026 (étape 7A fusionnée : schéma et données d'exemple dans la base Supabase, que le site n'utilise pas encore ; prochaine étape prévue : 7B). Pour reprendre dans une nouvelle conversation : `docs/PROMPT_REPRISE.md`.
+État au 23 novembre 2026 (étape 7A fusionnée ; étape 7B, parcours client sur la base, en PR et active sur la Preview seulement ; la production reste sur la démo du navigateur). Pour reprendre dans une nouvelle conversation : `docs/PROMPT_REPRISE.md`.
 
 ## Où sont les choses
 
@@ -23,7 +23,7 @@
 | 5 bis | Back-office : menu latéral réductible (demandé le 22/11/2026) | Fusionnée (PR #9), en production |
 | 5 ter | Deux tarifs, Éco et VIP (décision du fondateur, 22/11/2026) | Fusionnée (PR #10), en production |
 | 6 | Recette | À faire |
-| 7 | Brancher l'application sur la base Supabase | Plan validé (`docs/PLAN_BASE_DE_DONNEES.md`) ; étape A (fondations) fusionnée (PR #11, `499b377`), en production : schéma, `PostgresRepository`, page `/preview/base`. Base Supabase : migration 0001 appliquée et données d'exemple chargées le 23/11/2026 (80 traversées, 480 paliers, 4 005 ventes, 8 026 passagers ; identiques à la démo) ; migration 0002 (retrait des droits publics) appliquée le 23/11/2026 : 0 table sans RLS, 0 règle d'accès, 0 droit pour `anon` et `authenticated`. Étapes B à E à faire |
+| 7 | Brancher l'application sur la base Supabase | Plan validé (`docs/PLAN_BASE_DE_DONNEES.md`) ; étape A (fondations) fusionnée (PR #11, `499b377`), en production : schéma, `PostgresRepository`, page `/preview/base`. Étape B (parcours client sur la base) : PR ouverte le 23/11/2026, active sur la Preview seulement. Base Supabase : migration 0001 appliquée et données d'exemple chargées le 23/11/2026 (80 traversées, 480 paliers, 4 005 ventes, 8 026 passagers ; identiques à la démo) ; migration 0002 (retrait des droits publics) appliquée le 23/11/2026 : 0 table sans RLS, 0 règle d'accès, 0 droit pour `anon` et `authenticated`. Étapes B à E à faire |
 
 ### Étape 3 : contenu
 
@@ -86,6 +86,22 @@ Besoin : le contrôleur scanne le QR du billet, le passager monte si le scan est
 - Appliquer une migration (après relecture de la PR et accord de l'utilisateur) : sur la Preview, `/preview/base`, bouton « Appliquer les migrations ». Contrôle de sécurité, en lecture seule, dans l'éditeur SQL de Supabase : nombre de tables `public` sans RLS (`pg_class.relrowsecurity`), de règles (`pg_policies`), de droits de `anon` et `authenticated` (`information_schema.role_table_grants`) et de droits par défaut (`pg_default_acl`) ; les quatre valent 0 le 23/11/2026.
 - Le site n'utilise pas encore la base : c'est l'étape B.
 
+### Étape 7B : parcours client sur la base (PR ouverte le 23/11/2026)
+
+Décision du 23/11/2026 : **active sur la Preview seulement**. La production garde la démo du navigateur jusqu'aux étapes C (comptes de gestion) et D (back-office et scan sur la base) : sinon le back-office et le scan, restés dans le navigateur, ne verraient plus les réservations du site, et brancher le back-office sur la base derrière le code `241241` exposerait les données des passagers.
+
+- **Aiguillage** (`services/mode-donnees.ts`, fixé au build par `next.config.ts`) : `NEXT_PUBLIC_LOGIMAR_DONNEES = "base"` si `POSTGRES_URL` existe et que `VERCEL_ENV` n'est pas `production` (Preview, ou poste local avec `.env.local`), sinon `"demo"`. Seul ce mot est inscrit dans le code. Les actions serveur refusent tout en mode démo.
+- **Actions serveur** (`services/serveur/actions-site.ts`, seules portes du navigateur vers la base, entrées vérifiées) : référentiel, infos trafic, traversées, inventaires, répartition par tarif, billet d'exemple ; blocage, lecture de commande, abandon, demande de paiement, suivi du paiement ; lecture par identifiant des réservations, commandes, paiements, e-mails ; recherche « Mes billets » ; rattachement d'une commande à un compte client. L'heure est celle du serveur. Services serveur : `services/serveur/services.ts`.
+- **Transactions** : `Repository.transaction(verrous, travail)`. Blocage : traversées verrouillées (`select … for update`, dans l'ordre des identifiants), places relues puis enregistrées. Émission : paiement verrouillé et relu, billets, références et numéro de facture dans la même transaction (deux relectures simultanées n'émettent qu'une fois). `DemoRepository` : exécution directe. Corrigé au passage : la commande est enregistrée avant ses réservations (clé étrangère en base).
+- **Paiement simulé serveur** (`SimulatedProviderServeur`) : sans état ni minuterie ; l'issue se déduit du paiement en base quand l'écran redemande l'état (validé 4 s après la demande, refusé si le numéro finit par `0000`).
+- **Accès aux billets** : le serveur ne rend rien sur la seule référence. L'appareil garde les identifiants (aléatoires) des réservations qu'il a faites ou retrouvées (`logimar-demo:v1:reservations-base`) ; un autre appareil passe par « Mes billets » (référence + téléphone ou e-mail, même message d'échec dans tous les cas). Pas de migration : l'identifiant de la réservation sert de clé (le jeton dédié proposé au départ n'a pas été nécessaire ; à revoir pour la production).
+- **Navigateur** : `RepositoryDistant` (lectures par actions serveur, écritures directes refusées, comptes clients et codes sur l'appareil) et `ServiceReservationDistant`. Écrans inchangés. `repositoryGestion` (démo du navigateur) sert au back-office et au scan.
+- **Mémoire serveur** : référentiel 5 min (dans `PostgresRepository`), répartition par tarif 1 min.
+- Tests : `services/serveur/parcours-serveur.test.ts` (PGlite : blocage, dernières places demandées en même temps, paiement, double confirmation, factures sans trou, refus `0000`, expiration, recherche de billet), `services/repository/repository-distant.test.ts`. 189 tests, lint et build OK.
+- Vérifié sur la Preview le 23/11/2026 : réservation au format téléphone (LGM-DVNS5, `essai@example.com`, 27 nov., facture F-2026-000001), puis au format ordinateur, mémoire de l'appareil effacée : billet refusé sur la seule référence, refusé avec un mauvais contact, affiché avec l'e-mail de la réservation ; aperçu de l'e-mail lu depuis la base. En local (sans base), parcours complet en mode démo inchangé. Cette réservation d'essai reste dans la base partagée (1 place le 27 nov.).
+- **Lenteur constatée** : environ 330 ms par lecture simple, 4 s pour le blocage, 5 s pour l'émission, plusieurs secondes pour la page du billet. Cause : les fonctions Vercel tournent loin de la base (Paris) et chaque requête fait l'aller-retour, une par une (pooler). Piste : régler la région des fonctions sur Paris (`cdg1`), à décider par l'utilisateur.
+- **Non fait / reporté** : back-office, manifeste et scan sur la base (étape D ; le billet du client n'affiche pas le tampon « utilisé » en mode base) ; comptes clients sur la base ; signature des QR côté serveur (étape D) ; limitation du nombre d'essais de « Mes billets ».
+
 ## Méthode de travail (validée)
 
 - Une PR par étape depuis `demo-v1` ; l'utilisateur relit la Preview et fusionne par *merge commit*. **Ne jamais pousser l'étape suivante tant que la PR précédente est ouverte** (les commits s'ajouteraient à cette PR) : commiter en local et surveiller `git ls-remote origin main`.
@@ -120,7 +136,7 @@ Besoin : le contrôleur scanne le QR du billet, le passager monte si le scan est
 
 ## Étapes suivantes
 
-- **7B — Parcours client sur la base** (prochaine, `docs/PLAN_BASE_DE_DONNEES.md`) : actions serveur pour la recherche, le blocage des places dans une transaction, le paiement simulé, les billets, « Mes billets », la facture numérotée ; `services/index.ts` choisit `PostgresRepository` quand la base est configurée. Critère : une réservation faite sur un téléphone est visible depuis l'ordinateur.
+- **7B — Parcours client sur la base** : PR ouverte, à relire sur la Preview puis à fusionner (la production n'en est pas changée). Décision attendue : région des fonctions Vercel à Paris.
 - Puis **C** (vrais comptes de gestion, création du compte du fondateur ; le plan permet de la faire passer avant B), **D** (back-office et embarquement partagés entre appareils), **E** (tâche quotidienne, qui garde aussi la base active).
 - **6 — Recette** : tablette et ordinateur, accessibilité, console, scénario de présentation dans le README.
 - Petite PR à part : montée de version de Next.js 16.x (`npm audit`).
@@ -136,3 +152,8 @@ Sens des traversées par jour (hypothèse : deux par jour), capacité du Victori
 - Fait : étapes 0 à 5 (PR #1 à #8), menu latéral du back-office (PR #9), tarifs Éco et VIP (PR #10), base Supabase créée et reliée à Vercel, plan de branchement validé, étape 7A (PR #11) avec les migrations 0001 et 0002 appliquées et les données d'exemple chargées.
 - Décidé : deux tarifs, Éco et VIP (le VIP reprend l'ancien Flex) ; une seule base pour la Preview et la production ; ventes d'exemple gardées dans la base ; migrations appliquées depuis `/preview/base` après relecture ; PGlite pour les tests.
 - Reste : étapes 7B à 7E, étape 6 (recette), montée de version de Next.js, points à confirmer par LOGIMAR.
+
+### 2026-11-23 - Étape 7B
+- Fait : parcours client sur le serveur et la base (actions serveur, transactions, paiement simulé serveur, Mes billets), tests PGlite, vérification téléphone → ordinateur sur la Preview.
+- Décidé : 7B active sur la Preview seulement ; production sur la démo jusqu'à C et D ; pas de migration (identifiant de réservation comme clé d'accès).
+- Reste : relecture et fusion de la PR, région des fonctions, étapes C, D, E.
