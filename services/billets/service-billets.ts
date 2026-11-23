@@ -13,6 +13,9 @@ import { lireJson, type Stockage } from "../stockage"
 const CLE = "logimar-demo:v2:billets-appareil"
 const STATUTS_BILLET = ["emise", "embarquee", "absente"]
 
+/** Message unique : on ne révèle pas si la référence existe. */
+export const MESSAGE_BILLET_INTROUVABLE = "Aucun billet ne correspond à cette référence et à ce contact."
+
 function contactCorrespond(reservation: Reservation, contact: string): boolean {
   const saisie = contact.trim()
   if (saisie.includes("@")) return reservation.email !== null && reservation.email === saisie.toLowerCase()
@@ -20,8 +23,22 @@ function contactCorrespond(reservation: Reservation, contact: string): boolean {
   return chiffres !== null && reservation.telephone !== null && chiffresTelephone(reservation.telephone) === chiffres
 }
 
+/** Le billet de cette référence, s'il est émis et que le contact est celui de la réservation (sinon null). */
+export async function trouverBillet(repository: Repository, reference: string, contact: string): Promise<Reservation | null> {
+  const reservation = await repository.trouverReservationParReference(normaliserReference(reference))
+  return reservation && STATUTS_BILLET.includes(reservation.statut) && contactCorrespond(reservation, contact) ? reservation : null
+}
+
 export class ServiceBillets {
-  constructor(private readonly d: { repository: Repository; auth: AuthService; stockage: Stockage }) {}
+  constructor(
+    private readonly d: {
+      repository: Repository
+      auth: AuthService
+      stockage: Stockage
+      /** Recherche par référence et contact ; par défaut dans `repository` (démo), sinon sur le serveur. */
+      trouver?: (reference: string, contact: string) => Promise<Reservation | null>
+    },
+  ) {}
 
   private references(): string[] {
     return lireJson<string[]>(this.d.stockage, CLE, [])
@@ -34,11 +51,10 @@ export class ServiceBillets {
 
   async rechercher(reference: string, contact: string): Promise<ResultatAuth<string>> {
     const ref = normaliserReference(reference)
-    const reservation = await this.d.repository.trouverReservationParReference(ref)
-    if (!reservation || !STATUTS_BILLET.includes(reservation.statut) || !contactCorrespond(reservation, contact)) {
-      // Même message dans tous les cas : on ne révèle pas si la référence existe.
-      return { ok: false, message: "Aucun billet ne correspond à cette référence et à ce contact." }
-    }
+    const reservation = this.d.trouver
+      ? await this.d.trouver(ref, contact)
+      : await trouverBillet(this.d.repository, ref, contact)
+    if (!reservation) return { ok: false, message: MESSAGE_BILLET_INTROUVABLE }
     this.memoriser(ref)
     return { ok: true, valeur: ref }
   }

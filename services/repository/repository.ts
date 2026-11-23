@@ -70,7 +70,22 @@ export interface Inventaire {
   placesRestantes: number
 }
 
+/** Lignes verrouillées pendant une transaction (jusqu'à sa fin). */
+export interface Verrous {
+  /** Traversées dont on vend des places : deux ventes simultanées passent l'une après l'autre. */
+  traversees?: string[]
+  /** Paiements dont on applique la confirmation : un paiement n'émet ses billets qu'une fois. */
+  paiements?: string[]
+}
+
 export interface Repository {
+  /**
+   * Exécute `travail` d'un seul tenant : tout est enregistré, ou rien. Les lignes de `verrous` restent
+   * verrouillées jusqu'à la fin. `travail` doit utiliser le Repository qu'il reçoit.
+   * Démo (un seul navigateur) : exécution directe.
+   */
+  transaction<R>(verrous: Verrous, travail: (repository: Repository) => Promise<R>): Promise<R>
+
   getReferentiel(): Promise<Referentiel>
   /** Messages d'info trafic actifs à cet instant. */
   getInfosTrafic(maintenant: Date): Promise<InfoTrafic[]>

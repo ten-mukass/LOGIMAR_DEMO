@@ -43,7 +43,7 @@ import type {
   Traversee,
 } from "@/domain/types"
 import { iso, isoOuNull, json, jourOuNull, type Ligne, type Sql } from "../serveur/sql"
-import type { FiltreTraversees, Inventaire, Referentiel, Repository } from "./repository"
+import type { FiltreTraversees, Inventaire, Referentiel, Repository, Verrous } from "./repository"
 
 const MS_JOUR = 86_400_000
 
@@ -196,12 +196,39 @@ function grouper<T>(elements: T[], cle: (e: T) => string): Map<string, T[]> {
 const COLONNES_TRAVERSEE =
   "id, ligne_id, navire_id, terminal_depart_id, terminal_arrivee_id, depart_at, arrivee_at, enregistrement_ouverture_at, enregistrement_fermeture_at, statut, capacite_vendable"
 
+/** Référentiel gardé en mémoire par le serveur (il change rarement ; 9 requêtes à chaque lecture sinon). */
+export interface MemoireReferentiel {
+  dureeMs: number
+  entree?: { valeur: Promise<Referentiel>; jusqua: number }
+}
+
 export class PostgresRepository implements Repository {
   constructor(
     private readonly sql: Sql,
     /** Contenus restés dans le code (textes, société, opérateurs…) et valeurs par défaut. */
     private readonly seed: Seed,
+    /** Absente : le référentiel est relu à chaque fois (tests). */
+    private readonly memoireReferentiel: MemoireReferentiel | null = null,
   ) {}
+
+  /**
+   * Transaction en base. Les traversées puis les paiements sont verrouillés dans l'ordre des identifiants
+   * (deux transactions ne s'attendent jamais l'une l'autre en sens inverse). Le Repository passé à `travail`
+   * écrit dans la transaction ; une erreur annule tout.
+   */
+  async transaction<R>(verrous: Verrous, travail: (repository: Repository) => Promise<R>): Promise<R> {
+    return this.sql.transaction(async (sql) => {
+      const traversees = [...new Set(verrous.traversees ?? [])].sort()
+      const paiements = [...new Set(verrous.paiements ?? [])].sort()
+      if (traversees.length > 0) {
+        await sql.requete(`select id from traversees where id in ${DANS(1)} order by id for update`, [JSON.stringify(traversees)])
+      }
+      if (paiements.length > 0) {
+        await sql.requete(`select id from paiements where id in ${DANS(1)} order by id for update`, [JSON.stringify(paiements)])
+      }
+      return travail(new PostgresRepository(sql, this.seed, this.memoireReferentiel))
+    })
+  }
 
   // Lectures internes ------------------------------------------------------
 
@@ -298,6 +325,19 @@ export class PostgresRepository implements Repository {
   // Référentiel ------------------------------------------------------------
 
   async getReferentiel(): Promise<Referentiel> {
+    const m = this.memoireReferentiel
+    if (!m) return this.lireReferentiel()
+    if (m.entree && m.entree.jusqua > Date.now()) return m.entree.valeur
+    const entree = { valeur: this.lireReferentiel(), jusqua: Date.now() + m.dureeMs }
+    m.entree = entree
+    // Une lecture en échec n'est pas gardée.
+    entree.valeur.catch(() => {
+      entree.jusqua = 0
+    })
+    return entree.valeur
+  }
+
+  private async lireReferentiel(): Promise<Referentiel> {
     const s = this.seed
     const [ports, terminaux, lignes, navires, regles, familles, options, agences, config] = await Promise.all([
       this.sql.requete("select * from ports order by rang, id"),

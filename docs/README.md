@@ -1,14 +1,18 @@
 # Dossier LOGIMAR 241 — pour Claude Code
 
-Mis à jour le 14 novembre 2026.
+Mis à jour le 23 novembre 2026.
 
-**Étape en cours : démonstration** à présenter au fondateur de LOGIMAR. Production (nom de domaine, hébergement, base de données, comptes marchands, prestataire d'e-mails) seulement après validation.
+**Étape en cours : démonstration** à présenter au fondateur de LOGIMAR. Production (nom de domaine, hébergement, base de données, comptes marchands, prestataire d'e-mails) seulement après validation. Une base Supabase sert déjà à la démo depuis le 23/11/2026 (`PLAN_BASE_DE_DONNEES.md`).
 
 ## Contenu
 
 | Fichier | Rôle |
 |---|---|
 | `PROMPT_CLAUDE_CODE.md` | Le prompt de départ à copier-coller dans Claude Code. |
+| `PROMPT_REPRISE.md` | Le prompt pour reprendre le travail dans une nouvelle conversation. |
+| `PASSATION.md` | État d'avancement, méthode de travail, pièges connus : à lire en premier pour reprendre. |
+| `PLAN_DEMO.md` | Plan de la démo validé (étapes 0 à 6) et décisions par défaut. |
+| `PLAN_BASE_DE_DONNEES.md` | Plan validé pour brancher l'application sur la base Supabase (étapes A à E). |
 | `PERIMETRE_DEMO.md` | **Ce qu'il faut livrer maintenant** : réel / simulé, données d'exemple, critères de fin. Fait foi pour la démo. |
 | `ETAT_DU_DEPOT.md` | Analyse du dépôt `ten-mukass/LOGIMAR_DEMO` : ce qui existe, ce qui manque, ce qui est faux. |
 | `CAHIER_DES_CHARGES_RESERVATION.md` | Application client complète (production) : écrans, règles de gestion, paiement Airtel/Moov, billet, facture, compte, modèle de données. |
@@ -22,7 +26,7 @@ Maquettes d'origine (canevas Claude Design, accès privé) : https://claude.ai/a
 
 ## Décisions validées
 
-- Trois tarifs : Éco, Standard, Flex. Tarifs passagers libres au Gabon.
+- Deux tarifs : Éco et VIP (décision du fondateur, 22/11/2026 ; remplace Éco, Standard, Flex). Tarifs passagers libres au Gabon.
 - Paiement : Airtel Money et Moov Money en direct (pas de carte bancaire au départ).
 - V1 : billet et facture dans l'application et par e-mail ; SMS et WhatsApp en V2.
 - Le client donne au moins un téléphone ou un e-mail ; réservation sans compte ; compte proposé après le paiement.
