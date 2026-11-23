@@ -23,8 +23,8 @@ function aleatoireCrypto(): number {
 }
 
 /** Assemble les services sur une base donnée (Supabase, ou PGlite dans les tests). */
-export function creerServicesServeur(sql: Sql, horloge: () => Date = maintenant): ServicesServeur {
-  const repository = new PostgresRepository(sql, seed)
+export function creerServicesServeur(sql: Sql, horloge: () => Date = maintenant, memoireReferentiel = true): ServicesServeur {
+  const repository = new PostgresRepository(sql, seed, memoireReferentiel ? { dureeMs: 5 * 60_000 } : null)
   const genererId = () => crypto.randomUUID()
   const operateur = (code: Operateur): PaymentProvider =>
     new SimulatedProviderServeur(code, {

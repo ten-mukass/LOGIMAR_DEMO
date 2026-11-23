@@ -23,12 +23,10 @@ import { servicesServeur } from "./services"
 const MAX_IDS = 200
 
 /**
- * Petites mémoires du serveur pour ce qui change peu : le référentiel (9 requêtes) et la répartition par tarif
- * (lit toutes les ventes). Le reste (places, prix) est toujours relu.
+ * Répartition par tarif (« Le plus choisi ») : elle lit toutes les ventes, on la garde une minute.
+ * Le référentiel est gardé par le Repository du serveur ; places et prix sont toujours relus.
  */
-const DUREE_REFERENTIEL_MS = 5 * 60_000
 const DUREE_REPARTITION_MS = 60_000
-let referentiel: { valeur: Promise<Referentiel>; jusqua: number } | null = null
 let repartition: { valeur: Promise<Record<CodeFamille, number>>; jusqua: number } | null = null
 
 function memoire<T>(entree: { valeur: Promise<T>; jusqua: number } | null, duree: number, lire: () => Promise<T>) {
@@ -101,9 +99,7 @@ function estDemandeBlocage(d: unknown): d is DemandeBlocage {
 // Référentiel et ventes ------------------------------------------------------
 
 export async function lireReferentiel(): Promise<Referentiel> {
-  const s = services()
-  referentiel = memoire(referentiel, DUREE_REFERENTIEL_MS, () => s.repository.getReferentiel())
-  return referentiel.valeur
+  return services().repository.getReferentiel()
 }
 
 export async function lireInfosTrafic(): Promise<InfoTrafic[]> {
