@@ -4,6 +4,7 @@
  */
 import { schemaInitial } from "./migrations/0001-schema-initial"
 import { retraitDroitsPublics } from "./migrations/0002-retrait-droits-publics"
+import { comptesGestion } from "./migrations/0003-comptes-gestion"
 import type { Sql } from "./sql"
 
 export interface Migration {
@@ -15,6 +16,7 @@ export interface Migration {
 export const MIGRATIONS: Migration[] = [
   { version: "0001", description: "Schéma initial", script: schemaInitial },
   { version: "0002", description: "Retrait des droits des rôles publics", script: retraitDroitsPublics },
+  { version: "0003", description: "Comptes de l'équipe (profils, journal d'audit)", script: comptesGestion },
 ]
 
 export interface EtatMigration {

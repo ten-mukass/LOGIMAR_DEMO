@@ -3,7 +3,11 @@ import { notFound } from "next/navigation"
 import { classesBouton } from "@/components/ui/bouton"
 import { baseConfiguree, baseSupabase } from "@/services/serveur/connexion"
 import { accesControleBase, etatBase, type EtatBase } from "@/services/serveur/controle"
-import { appliquerLesMigrations, chargerLesExemples } from "./actions"
+import { ariaChamp, Champ, classesChamp } from "@/components/ui/champ"
+import { LONGUEUR_MIN_MOT_DE_PASSE } from "@/domain/roles"
+import { gestionParComptes } from "@/services/mode-gestion"
+import { serviceComptes } from "@/services/serveur/session-gestion"
+import { appliquerLesMigrations, chargerLesExemples, creerPremierAdministrateur } from "./actions"
 
 export const metadata: Metadata = { title: { absolute: "Contrôle de la base — LOGIMAR 241" }, robots: { index: false, follow: false } }
 export const dynamic = "force-dynamic"
@@ -26,6 +30,15 @@ export default async function PageControleBase({ searchParams }: { searchParams:
     }
   }
   const aAppliquer = etat?.migrations.filter((m) => m.appliqueeLe === null) ?? []
+  // Comptes de l'équipe (étape 7C) : proposer le premier administrateur tant qu'il n'y en a aucun.
+  let sansAdministrateur = false
+  if (etat && aAppliquer.length === 0 && gestionParComptes) {
+    try {
+      sansAdministrateur = !(await serviceComptes().administrateurExiste())
+    } catch (e) {
+      erreur = e instanceof Error ? e.message : String(e)
+    }
+  }
   const ecarts = etat?.comparaison.filter((c) => !c.identique).length ?? 0
 
   return (
@@ -33,8 +46,7 @@ export default async function PageControleBase({ searchParams }: { searchParams:
       <header className="space-y-1">
         <h1 className="text-[24px] font-extrabold text-marine">Contrôle de la base</h1>
         <p className="text-[14px] text-gris">
-          Page interne, visible sur les Previews seulement. Étape A de docs/PLAN_BASE_DE_DONNEES.md : le site n’utilise pas encore la
-          base.
+          Page interne, visible sur les Previews seulement : migrations, données d’exemple, premier administrateur (docs/PLAN_BASE_DE_DONNEES.md).
         </p>
       </header>
 
@@ -63,6 +75,41 @@ export default async function PageControleBase({ searchParams }: { searchParams:
               </form>
             )}
           </section>
+
+          {sansAdministrateur && (
+            <section className="space-y-3 rounded-carte border border-bordure bg-white p-5">
+              <h2 className="text-[17px] font-bold text-marine">Premier administrateur</h2>
+              <p className="text-[14px]">
+                Aucun compte d’administrateur. Créez le vôtre : vous ajouterez ensuite les autres comptes (dont celui du fondateur)
+                dans Gestion &gt; Utilisateurs. Ce formulaire disparaît dès qu’un administrateur existe.
+              </p>
+              <form action={creerPremierAdministrateur} className="grid max-w-md gap-3">
+                <Champ id="admin-email" libelle="Adresse e-mail">
+                  <input {...ariaChamp("admin-email")} name="email" type="email" autoComplete="username" required className={classesChamp} />
+                </Champ>
+                <Champ id="admin-nom" libelle="Nom">
+                  <input {...ariaChamp("admin-nom")} name="nom" type="text" autoComplete="name" required className={classesChamp} />
+                </Champ>
+                <Champ id="admin-mdp" libelle="Mot de passe" aide={`Au moins ${LONGUEUR_MIN_MOT_DE_PASSE} caractères, avec des lettres et des chiffres.`}>
+                  <input
+                    {...ariaChamp("admin-mdp", undefined, "aide")}
+                    name="motDePasse"
+                    type="password"
+                    autoComplete="new-password"
+                    required
+                    minLength={LONGUEUR_MIN_MOT_DE_PASSE}
+                    className={classesChamp}
+                  />
+                </Champ>
+                <Champ id="admin-confirmation" libelle="Confirmez le mot de passe">
+                  <input {...ariaChamp("admin-confirmation")} name="confirmation" type="password" autoComplete="new-password" required className={classesChamp} />
+                </Champ>
+                <button type="submit" className={classesBouton({ taille: "compact" })}>
+                  Créer l’administrateur
+                </button>
+              </form>
+            </section>
+          )}
 
           {aAppliquer.length === 0 && (
             <>

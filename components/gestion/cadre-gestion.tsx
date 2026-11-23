@@ -1,6 +1,7 @@
 "use client"
 
 import { LockKeyhole } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { useEffect, useState, type ReactNode } from "react"
 import { TexteBandeauDemo } from "@/components/site/bandeau-demo"
 import { Logo } from "@/components/site/logo"
@@ -8,10 +9,53 @@ import { Bouton } from "@/components/ui/bouton"
 import { ariaChamp, Champ, classesChamp } from "@/components/ui/champ"
 import { cn } from "@/lib/utils"
 import { accesGestion } from "@/services"
+import { gestionParComptes } from "@/services/mode-gestion"
+import { deconnecterGestion, lireSessionGestion, type SessionGestion } from "@/services/serveur/actions-gestion"
 import { MenuLateral, MenuMobile, useMenuReplie } from "./menu-gestion"
+import { ContexteProfilGestion } from "./profil-gestion"
 
-/** Écran de code d'accès tant que la session de gestion n'est pas ouverte (back-office et embarquement). */
+/**
+ * Back-office et embarquement : comptes de l'équipe (mode « comptes », la page est déjà filtrée par proxy.ts),
+ * ou écran de code d'accès de la démonstration (mode « code »).
+ */
 export function GardeGestion({ children }: { children: (seDeconnecter: () => Promise<void>) => ReactNode }) {
+  return gestionParComptes ? <GardeComptes>{children}</GardeComptes> : <GardeCode>{children}</GardeCode>
+}
+
+function GardeComptes({ children }: { children: (seDeconnecter: () => Promise<void>) => ReactNode }) {
+  const [profil, setProfil] = useState<SessionGestion | null | undefined>(undefined)
+  const router = useRouter()
+
+  useEffect(() => {
+    const versConnexion = () =>
+      router.replace(`/gestion/connexion?suite=${encodeURIComponent(window.location.pathname + window.location.search)}`)
+    let actif = true
+    lireSessionGestion()
+      .then((p) => {
+        if (!actif) return
+        if (p) setProfil(p)
+        else versConnexion()
+      })
+      .catch(() => {
+        if (actif) versConnexion()
+      })
+    return () => {
+      actif = false
+    }
+  }, [router])
+
+  if (!profil) return <main className="min-h-[60dvh]" />
+  return (
+    <ContexteProfilGestion.Provider value={profil}>
+      {children(async () => {
+        await deconnecterGestion()
+        router.replace("/gestion/connexion")
+      })}
+    </ContexteProfilGestion.Provider>
+  )
+}
+
+function GardeCode({ children }: { children: (seDeconnecter: () => Promise<void>) => ReactNode }) {
   const [connecte, setConnecte] = useState<boolean | null>(null)
 
   useEffect(() => {

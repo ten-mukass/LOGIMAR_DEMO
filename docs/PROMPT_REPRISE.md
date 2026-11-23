@@ -7,7 +7,7 @@ Tu reprends le projet LOGIMAR 241, dans ~/Developer/LOGIMAR_DEMO, branche demo-v
 
 1. Avant toute chose
 - Lis en entier, dans cet ordre : docs/PASSATION.md (état, méthode de travail, pièges connus ; il fait foi pour la suite), docs/PLAN_BASE_DE_DONNEES.md (plan validé, étapes A à E), docs/PERIMETRE_DEMO.md (périmètre de la démo). Ne lis les cahiers des charges (docs/CAHIER_DES_CHARGES_*.md) que pour la partie que tu touches.
-- Vérifie l'état : git status, git log --oneline -5 origin/main, npm test (189 tests verts le 23/11/2026).
+- Vérifie l'état : git status, git log --oneline -5 origin/main, npm test (199 tests verts le 23/11/2026).
 - Fais-moi un point en cinq lignes, puis attends ma consigne avant d'écrire du code.
 
 2. Où on en est (23/11/2026)
@@ -20,7 +20,7 @@ Tu reprends le projet LOGIMAR 241, dans ~/Developer/LOGIMAR_DEMO, branche demo-v
 
 3. Objectif de cette conversation
 - Si la PR de montée de version de Next.js est encore ouverte : attendre ma demande de fusion (ne rien pousser d'autre sur demo-v1).
-- Sinon, étape C du plan (comptes de gestion, compte du fondateur) : commence par me proposer son découpage et attends ma validation.
+- Étape C (comptes de l'équipe) : faite et commitée en local sur demo-v1, pas encore poussée. Après la fusion de la PR de Next.js : la pousser, ouvrir sa PR, puis suivre l'ordre de mise en service de docs/PASSATION.md (« Étape 7C ») : accord pour la migration 0003 et pour couper les inscriptions publiques de Supabase, mon compte administrateur créé par moi sur /preview/base, essais, compte du fondateur, fusion.
 
 4. Méthode (toujours en vigueur)
 - Une PR par étape depuis demo-v1. Tu ouvres la PR toi-même dans le navigateur intégré (gh n'est pas installé), description terminée par la ligne d'attribution Claude Code. Je relis la Preview ; la fusion se fait par merge commit, et seulement quand je te le demande.

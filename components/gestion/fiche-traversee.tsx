@@ -20,6 +20,7 @@ import { syntheseTraversees } from "@/services/gestion/service-gestion"
 import { BadgePalier, BadgesAlertes, Chargement, EnTetePage, Section, Tableau, Tuile } from "./elements"
 import { CourbeReservation } from "./graphiques"
 import { libelleStatutTraversee, nomLigne } from "./libelles"
+import { useDroitGestion } from "./profil-gestion"
 
 /** Point « aujourd'hui » de la courbe, si la traversée est à venir et dans la fenêtre de la courbe. */
 function actuelSurLaCourbe(departAt: string, maintenant: Date, jours: number, places: number) {
@@ -34,6 +35,8 @@ export function FicheTraversee({ id }: { id: string }) {
   const [erreur, setErreur] = useState<string | null>(null)
   const [confirmation, setConfirmation] = useState<string | null>(null)
   const [enCours, setEnCours] = useState(false)
+  // Direction : lecture seule (pas de bouton Fermer / Ouvrir).
+  const reglerPaliers = useDroitGestion("paliers")
 
   const vue = useMemo(() => {
     if (!etat) return null
@@ -241,7 +244,7 @@ export function FicheTraversee({ id }: { id: string }) {
                         <span className="text-[12px] text-gris" title="Le VIP reste vendable tant qu’il reste des places.">
                           Toujours ouvert
                         </span>
-                      ) : !partie && (
+                      ) : !partie && reglerPaliers && (
                         <Bouton
                           variante="contour"
                           taille="libre"
