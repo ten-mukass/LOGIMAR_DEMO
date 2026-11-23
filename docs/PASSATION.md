@@ -99,7 +99,7 @@ Décision du 23/11/2026 : **active sur la Preview seulement**. La production gar
 - **Mémoire serveur** : référentiel 5 min (dans `PostgresRepository`), répartition par tarif 1 min.
 - Tests : `services/serveur/parcours-serveur.test.ts` (PGlite : blocage, dernières places demandées en même temps, paiement, double confirmation, factures sans trou, refus `0000`, expiration, recherche de billet), `services/repository/repository-distant.test.ts`. 189 tests, lint et build OK.
 - Vérifié sur la Preview le 23/11/2026 : réservation au format téléphone (LGM-DVNS5, `essai@example.com`, 27 nov., facture F-2026-000001), puis au format ordinateur, mémoire de l'appareil effacée : billet refusé sur la seule référence, refusé avec un mauvais contact, affiché avec l'e-mail de la réservation ; aperçu de l'e-mail lu depuis la base. En local (sans base), parcours complet en mode démo inchangé. Cette réservation d'essai reste dans la base partagée (1 place le 27 nov.).
-- **Lenteur constatée** : environ 330 ms par lecture simple, 4 s pour le blocage, 5 s pour l'émission, plusieurs secondes pour la page du billet. Cause : les fonctions Vercel tournent loin de la base (Paris) et chaque requête fait l'aller-retour, une par une (pooler). Piste : régler la région des fonctions sur Paris (`cdg1`), à décider par l'utilisateur.
+- **Région des fonctions** : d'abord lentes (environ 330 ms par lecture, 4 s pour le blocage, 5 s pour l'émission) car les fonctions Vercel tournaient loin de la base. Le 23/11/2026, avec l'accord de l'utilisateur, `vercel.json` fixe la région à Paris (`cdg1`, comme la base `eu-west-3`) ; s'applique aussi à la production. Mesuré ensuite sur la Preview : appels de 60 à 300 ms, blocage en moins de 3 s pour toute l'action, billet affiché environ 4,3 s après « Payer » (dont 4 s de paiement simulé), page du billet en environ 1 s. Seconde réservation d'essai : LGM-LD9JZ (29 nov.).
 - **Non fait / reporté** : back-office, manifeste et scan sur la base (étape D ; le billet du client n'affiche pas le tampon « utilisé » en mode base) ; comptes clients sur la base ; signature des QR côté serveur (étape D) ; limitation du nombre d'essais de « Mes billets ».
 
 ## Méthode de travail (validée)
@@ -136,7 +136,7 @@ Décision du 23/11/2026 : **active sur la Preview seulement**. La production gar
 
 ## Étapes suivantes
 
-- **7B — Parcours client sur la base** : PR ouverte, à relire sur la Preview puis à fusionner (la production n'en est pas changée). Décision attendue : région des fonctions Vercel à Paris.
+- **7B — Parcours client sur la base** : PR ouverte, à relire sur la Preview puis à fusionner (la production n'en est pas changée). Région des fonctions réglée sur Paris (`vercel.json`).
 - Puis **C** (vrais comptes de gestion, création du compte du fondateur ; le plan permet de la faire passer avant B), **D** (back-office et embarquement partagés entre appareils), **E** (tâche quotidienne, qui garde aussi la base active).
 - **6 — Recette** : tablette et ordinateur, accessibilité, console, scénario de présentation dans le README.
 - Petite PR à part : montée de version de Next.js 16.x (`npm audit`).
@@ -156,4 +156,5 @@ Sens des traversées par jour (hypothèse : deux par jour), capacité du Victori
 ### 2026-11-23 - Étape 7B
 - Fait : parcours client sur le serveur et la base (actions serveur, transactions, paiement simulé serveur, Mes billets), tests PGlite, vérification téléphone → ordinateur sur la Preview.
 - Décidé : 7B active sur la Preview seulement ; production sur la démo jusqu'à C et D ; pas de migration (identifiant de réservation comme clé d'accès).
-- Reste : relecture et fusion de la PR, région des fonctions, étapes C, D, E.
+- Décidé aussi : fonctions Vercel à Paris (`cdg1`).
+- Reste : relecture et fusion de la PR, étapes C, D, E.

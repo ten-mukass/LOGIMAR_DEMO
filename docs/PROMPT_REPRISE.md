@@ -13,7 +13,7 @@ Tu reprends le projet LOGIMAR 241, dans ~/Developer/LOGIMAR_DEMO, branche demo-v
 2. Où on en est (23/11/2026)
 - Étapes 0 à 5 de la démo fusionnées et en production (logimar-demo.vercel.app), plus le menu latéral du back-office (PR #9) et les deux tarifs Éco et VIP (PR #10 : le Standard est supprimé, le VIP reprend l'ancien Flex).
 - Étape 7A fusionnée (PR #11, commit 499b377) : schéma PostgreSQL, PostgresRepository testé sur PGlite, page de contrôle /preview/base (Preview seulement, 404 en production). Base Supabase logimar-241 : migrations 0001 et 0002 appliquées, données d'exemple chargées et identiques à la démo, RLS sur toutes les tables, aucune règle d'accès, aucun droit pour anon et authenticated.
-- Étape 7B (parcours client sur la base) : PR ouverte depuis demo-v1, active sur la Preview seulement (aiguillage services/mode-donnees.ts). La production garde la démo du navigateur jusqu'aux étapes C et D. Vérifié sur la Preview : réservation au téléphone retrouvée sur l'ordinateur. Lent (fonctions Vercel loin de la base) : décision attendue sur la région Paris (cdg1).
+- Étape 7B (parcours client sur la base) : PR ouverte depuis demo-v1, active sur la Preview seulement (aiguillage services/mode-donnees.ts). La production garde la démo du navigateur jusqu'aux étapes C et D. Vérifié sur la Preview : réservation au téléphone retrouvée sur l'ordinateur. Fonctions Vercel réglées sur Paris (vercel.json, cdg1) : parcours fluide.
 - Le compte du fondateur est prévu à l'étape C.
 - Reste aussi : étape 6 (recette), une petite PR de montée de version de Next.js 16.x (failles signalées par npm audit), et les points à confirmer par LOGIMAR (fin de la passation).
 
