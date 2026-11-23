@@ -23,7 +23,7 @@
 | 5 bis | Back-office : menu latéral réductible (demandé le 22/11/2026) | Fusionnée (PR #9), en production |
 | 5 ter | Deux tarifs, Éco et VIP (décision du fondateur, 22/11/2026) | Fusionnée (PR #10), en production |
 | 6 | Recette | À faire |
-| 7 | Brancher l'application sur la base Supabase | Plan validé (`docs/PLAN_BASE_DE_DONNEES.md`) ; étape A (fondations) en PR #11 : schéma, `PostgresRepository`, page `/preview/base`. Base Supabase : migration 0001 appliquée et données d'exemple chargées le 23/11/2026 (80 traversées, 480 paliers, 4 005 ventes, 8 026 passagers ; identiques à la démo) ; migration 0002 (retrait des droits publics) à appliquer |
+| 7 | Brancher l'application sur la base Supabase | Plan validé (`docs/PLAN_BASE_DE_DONNEES.md`) ; étape A (fondations) en PR #11 : schéma, `PostgresRepository`, page `/preview/base`. Base Supabase : migration 0001 appliquée et données d'exemple chargées le 23/11/2026 (80 traversées, 480 paliers, 4 005 ventes, 8 026 passagers ; identiques à la démo)  ; migration 0002 (retrait des droits publics) appliquée le 23/11/2026 : 0 table sans RLS, 0 règle d'accès, 0 droit pour `anon` et `authenticated` |
 
 ### Étape 3 : contenu
 
@@ -82,7 +82,7 @@ Besoin : le contrôleur scanne le QR du billet, le passager monte si le scan est
 - `services/repository/postgres-repository.ts` : même interface et mêmes règles que `DemoRepository` (vraies réservations d'abord, ventes d'exemple ensuite, palier fermé au moment de l'achat). Comptes clients : pas encore (renvoie « absent » ou une erreur claire). Côté serveur, `listerReservationsLocales` renvoie les vraies réservations.
 - Tests (`postgres-repository.test.ts`, PGlite) : le schéma s'applique une fois, RLS partout, et la base montre exactement ce que montre la démo (référentiel, traversées, inventaires de toutes les traversées à trois dates, réservations retenues, répartition, fermeture de palier), plus les écritures (réservation, embarquement sans doublon, commande, facture sans trou, paiement, envoi, scans, clôture, rechargement des exemples).
 - Page `/preview/base` : n'existe que si `VERCEL_ENV = preview` (ou en développement local) ; ailleurs, 404. Boutons « Appliquer les migrations » et « Charger les données d'exemple » (actions serveur qui refusent hors Preview).
-- Migration 0002 : retire les droits que Supabase accorde par défaut aux rôles `anon` et `authenticated` (vérifié le 23/11/2026 : 150 droits, sans effet grâce à la RLS sans règle, mais retirés par précaution).
+- Migration 0002 : retire les droits que Supabase accorde par défaut aux rôles `anon` et `authenticated` (vérifié le 23/11/2026 : 150 droits, sans effet grâce à la RLS sans règle, mais retirés par précaution). Appliquée le 23/11/2026 ; contrôle dans l'éditeur SQL : 0 droit restant, y compris par défaut sur les futures tables.
 - Le site n'utilise pas encore la base : c'est l'étape B.
 
 ## Méthode de travail (validée)
