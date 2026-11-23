@@ -1,11 +1,12 @@
 # Passation — démonstration LOGIMAR 241
 
-État au 22 novembre 2026 (menu latéral fusionné ; passage à deux tarifs Éco et VIP en PR).
+État au 22 novembre 2026 (tarifs Éco et VIP fusionnés ; base Supabase créée et reliée à Vercel ; plan de branchement à valider).
 
 ## Où sont les choses
 
 - Dépôt GitHub : `ten-mukass/LOGIMAR_DEMO`. Copie locale : `~/Developer/LOGIMAR_DEMO`, branche de travail `demo-v1`.
 - Vercel : projet `logimar-demo` ; production = `main` (logimar-demo.vercel.app) ; chaque push sur `demo-v1` crée une Preview (protégée par la connexion Vercel).
+- Supabase (créé le 22/11/2026) : organisation « LOGIMAR 241 » (offre gratuite, dédiée au projet), projet `logimar-241`, région Paris `eu-west-3`, encore vide et pas utilisé par l'application. Relié à Vercel par l'intégration officielle, limitée au projet `logimar-demo` : les variables `POSTGRES_*`, `SUPABASE_*`, `NEXT_PUBLIC_SUPABASE_*` sont synchronisées automatiquement (ne jamais les recopier ni les committer). Synchronisées vers Production et Preview (Preview activé le 23/11/2026 : Supabase > projet > Settings > Integrations > connexion Vercel > Edit) ; une Preview ne les reçoit qu'à son prochain déploiement. Mot de passe de la base : chez l'utilisateur.
 - Spécifications : `docs/` (`PERIMETRE_DEMO.md` fait foi). Plan validé et décisions par défaut : `docs/PLAN_DEMO.md`.
 - Serveur de développement : configuration `~/Developer/.claude/launch.json`, nom `logimar-dev`, port 3241 (à lancer avec l'outil de prévisualisation du navigateur intégré). L'outil lit `.claude/launch.json` dans le dossier de départ de la session : copier ce fichier là si la session n'a pas démarré dans `~/Developer`.
 
@@ -20,8 +21,9 @@
 | 4 | Back-office | Fusionnée (PR #5), en production ; correctif du billet PDF fusionné à part (PR #6) |
 | 5 | Embarquement : scan du QR, manifeste de bord | Fusionnée (PR #7), en production ; décodeur jsQR (iPhone) fusionné à part (PR #8) |
 | 5 bis | Back-office : menu latéral réductible (demandé le 22/11/2026) | Fusionnée (PR #9), en production |
-| 5 ter | Deux tarifs, Éco et VIP (décision du fondateur, 22/11/2026) | PR #10 ouverte, à relire sur la Preview |
+| 5 ter | Deux tarifs, Éco et VIP (décision du fondateur, 22/11/2026) | Fusionnée (PR #10), en production |
 | 6 | Recette | À faire |
+| 7 | Brancher l'application sur la base Supabase | Plan validé (`docs/PLAN_BASE_DE_DONNEES.md`) ; étape A (fondations) en PR #11 : schéma, `PostgresRepository`, page `/preview/base`. Base Supabase : migration 0001 appliquée et données d'exemple chargées le 23/11/2026 (80 traversées, 480 paliers, 4 005 ventes, 8 026 passagers ; identiques à la démo)  ; migration 0002 (retrait des droits publics) appliquée le 23/11/2026 : 0 table sans RLS, 0 règle d'accès, 0 droit pour `anon` et `authenticated` |
 
 ### Étape 3 : contenu
 
@@ -73,6 +75,16 @@ Besoin : le contrôleur scanne le QR du billet, le passager monte si le scan est
 - Clé des données du navigateur passée en `logimar-demo:v3:donnees` : les réservations et réglages enregistrés avant le changement (avec Standard ou Flex) sont abandonnés. La session de gestion et la préférence du menu sont conservées.
 - Cahiers des charges : une note en tête signale la décision ; leur texte n'a pas été réécrit.
 
+### Étape 7A : fondations de la base (23/11/2026)
+
+- `services/serveur/` (côté serveur uniquement) : `sql.ts` (interface `Sql` : requête paramétrée, script, transaction), `connexion.ts` (bibliothèque `postgres` sur `POSTGRES_URL`, pooler Supabase en mode transaction donc `prepare: false`, SSL), `sql-pglite.ts` (PGlite, tests seulement), `migrations.ts` + `migrations/0001-schema-initial.ts`, `exemples.ts` (chargement depuis `data/seed/`), `controle.ts` (état et comparaison avec la démo).
+- Schéma : référentiel (avec `rang` pour garder l'ordre de `data/seed/`), traversées, paliers, changements de paliers, commandes, réservations (`exemple` = vente d'exemple), passagers, options, paiements, compteurs de factures (numéro sans trou), envois, embarquements (unique traversée + passager), scans, clôtures. RLS sur toutes les tables sans aucune règle : la clé publique ne lit rien.
+- `services/repository/postgres-repository.ts` : même interface et mêmes règles que `DemoRepository` (vraies réservations d'abord, ventes d'exemple ensuite, palier fermé au moment de l'achat). Comptes clients : pas encore (renvoie « absent » ou une erreur claire). Côté serveur, `listerReservationsLocales` renvoie les vraies réservations.
+- Tests (`postgres-repository.test.ts`, PGlite) : le schéma s'applique une fois, RLS partout, et la base montre exactement ce que montre la démo (référentiel, traversées, inventaires de toutes les traversées à trois dates, réservations retenues, répartition, fermeture de palier), plus les écritures (réservation, embarquement sans doublon, commande, facture sans trou, paiement, envoi, scans, clôture, rechargement des exemples).
+- Page `/preview/base` : n'existe que si `VERCEL_ENV = preview` (ou en développement local) ; ailleurs, 404. Boutons « Appliquer les migrations » et « Charger les données d'exemple » (actions serveur qui refusent hors Preview).
+- Migration 0002 : retire les droits que Supabase accorde par défaut aux rôles `anon` et `authenticated` (vérifié le 23/11/2026 : 150 droits, sans effet grâce à la RLS sans règle, mais retirés par précaution). Appliquée le 23/11/2026 ; contrôle dans l'éditeur SQL : 0 droit restant, y compris par défaut sur les futures tables.
+- Le site n'utilise pas encore la base : c'est l'étape B.
+
 ## Méthode de travail (validée)
 
 - Une PR par étape depuis `demo-v1` ; l'utilisateur relit la Preview et fusionne par *merge commit*. **Ne jamais pousser l'étape suivante tant que la PR précédente est ouverte** (les commits s'ajouteraient à cette PR) : commiter en local et surveiller `git ls-remote origin main`.
@@ -91,6 +103,7 @@ Besoin : le contrôleur scanne le QR du billet, le passager monte si le scan est
 
 ## Pièges connus
 
+- Le build télécharge les polices Google (`next/font/google`) : un échec réseau passager fait échouer le build (« module-not-found » sur `montserrat…module.css`), en local comme sur Vercel. Relancer ; si cela se répète, passer aux polices hébergées dans le dépôt.
 - Ne pas lancer `next build` pendant que le serveur de développement tourne (dossier `.next` partagé : cache Turbopack corrompu). Arrêter la prévisualisation avant.
 - `crypto.subtle` et `crypto.randomUUID` exigent HTTPS ou localhost (pas d'accès en `http` depuis un téléphone sur le réseau local).
 - Les ventes d'exemple dépendent de la date réelle : le remplissage progresse avec le temps ; elles cèdent la place aux réservations du visiteur (pas de surréservation).
@@ -100,6 +113,7 @@ Besoin : le contrôleur scanne le QR du billet, le passager monte si le scan est
 - Le code d'accès est dans le code envoyé au navigateur : il protège l'écran, pas les données (toutes les données de la démo sont dans le navigateur).
 - Embarquement : la caméra exige https (ou localhost) ; la démo partage les embarquements entre onglets du même navigateur seulement (deux téléphones ne se voient pas : en production, synchronisation serveur sans doublon).
 - Outil de prévisualisation : il lit `.claude/launch.json` dans le dossier de la session ; une copie existe dans le dépôt, ignorée par git (`.git/info/exclude`).
+- Base Supabase : Preview et production partagent la même base (offre gratuite). Ne jamais écrire les valeurs des variables `POSTGRES_*` / `SUPABASE_*` ; en local, sans `.env.local`, la page de contrôle affiche « base non configurée ». Le pooler Supabase (mode transaction) refuse les requêtes préparées : garder `prepare: false`. La bibliothèque `postgres` réencode en JSON un paramètre de type jsonb : écrire `$N::text::jsonb` (un test l'impose). Le pooler supporte mal aussi plusieurs requêtes envoyées d'affilée sur une connexion (page bloquée 300 s le 23/11/2026) : `connexion.ts` envoie les requêtes une par une, avec un délai maximum (20 s, 60 s par transaction). L'offre gratuite met le projet en pause après 7 jours sans activité (tâche quotidienne prévue à l'étape E).
 
 ## Étapes suivantes (rappel de `docs/PLAN_DEMO.md`)
 
