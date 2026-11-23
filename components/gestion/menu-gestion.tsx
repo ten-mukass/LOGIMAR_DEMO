@@ -10,6 +10,8 @@ import {
   ScanLine,
   Ship,
   Ticket,
+  UserRound,
+  Users,
   X,
   type LucideIcon,
 } from "lucide-react"
@@ -17,13 +19,17 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useEffect, useId, useRef, useState } from "react"
 import { Logo } from "@/components/site/logo"
+import { LIBELLES_ROLES, peut, type Droit } from "@/domain/roles"
 import { cn } from "@/lib/utils"
+import { gestionParComptes } from "@/services/mode-gestion"
+import { useProfilGestion } from "./profil-gestion"
 
-const LIENS: { href: string; libelle: string; icone: LucideIcon }[] = [
-  { href: "/admin", libelle: "Tableau de bord", icone: LayoutDashboard },
-  { href: "/admin/traversees", libelle: "Traversées", icone: Ship },
-  { href: "/admin/reservations", libelle: "Réservations", icone: Ticket },
-  { href: "/scan", libelle: "Embarquement", icone: ScanLine },
+const LIENS: { href: string; libelle: string; icone: LucideIcon; droit: Droit }[] = [
+  { href: "/admin", libelle: "Tableau de bord", icone: LayoutDashboard, droit: "back-office" },
+  { href: "/admin/traversees", libelle: "Traversées", icone: Ship, droit: "back-office" },
+  { href: "/admin/reservations", libelle: "Réservations", icone: Ticket, droit: "back-office" },
+  { href: "/scan", libelle: "Embarquement", icone: ScanLine, droit: "embarquement" },
+  { href: "/admin/utilisateurs", libelle: "Utilisateurs", icone: Users, droit: "utilisateurs" },
 ]
 
 function actif(chemin: string, href: string): boolean {
@@ -91,6 +97,9 @@ function ContenuMenu({
   basculer?: { onClick: () => void }
 }) {
   const chemin = usePathname()
+  const profil = useProfilGestion()
+  // Code de démonstration : tous les liens ; comptes : ceux du rôle (le serveur revérifie).
+  const liens = LIENS.filter((l) => !gestionParComptes || (profil !== null && peut(profil.role, l.droit)))
   const disposition = replie ? "justify-center px-0" : "px-3"
   const nom = (texte: string) => (replie ? texte : undefined)
   return (
@@ -112,7 +121,7 @@ function ContenuMenu({
 
       <nav id={idNavigation} aria-label="Navigation de la gestion" className="mt-2 px-3">
         <ul className="space-y-1">
-          {LIENS.map(({ href, libelle, icone: Icone }) => {
+          {liens.map(({ href, libelle, icone: Icone }) => {
             const courant = actif(chemin, href)
             return (
               <li key={href}>
@@ -133,6 +142,24 @@ function ContenuMenu({
       </nav>
 
       <div className="mt-auto space-y-1 border-t border-white/15 px-3 py-3">
+        {profil && (
+          <p
+            className={cn("flex min-h-11 items-center gap-3 text-[13px] text-white/85", disposition)}
+            title={replie ? `${profil.nom} · ${LIBELLES_ROLES[profil.role]}` : undefined}
+          >
+            <UserRound aria-hidden className="size-5 shrink-0" />
+            {replie ? (
+              <span className="sr-only">
+                Connecté : {profil.nom}, {LIBELLES_ROLES[profil.role]}
+              </span>
+            ) : (
+              <span className="min-w-0 leading-tight">
+                <span className="block truncate font-semibold text-white">{profil.nom}</span>
+                <span className="block truncate">{LIBELLES_ROLES[profil.role]}</span>
+              </span>
+            )}
+          </p>
+        )}
         <Link
           href="/"
           onClick={onNaviguer}

@@ -102,6 +102,22 @@ Décision du 23/11/2026 : **active sur la Preview seulement**. La production gar
 - **Région des fonctions** : d'abord lentes (environ 330 ms par lecture, 4 s pour le blocage, 5 s pour l'émission) car les fonctions Vercel tournaient loin de la base. Le 23/11/2026, avec l'accord de l'utilisateur, `vercel.json` fixe la région à Paris (`cdg1`, comme la base `eu-west-3`) ; s'applique aussi à la production. Mesuré ensuite sur la Preview : appels de 60 à 300 ms, blocage en moins de 3 s pour toute l'action, billet affiché environ 4,3 s après « Payer » (dont 4 s de paiement simulé), page du billet en environ 1 s. Seconde réservation d'essai : LGM-LD9JZ (29 nov.).
 - **Non fait / reporté** : back-office, manifeste et scan sur la base (étape D ; le billet du client n'affiche pas le tampon « utilisé » en mode base) ; comptes clients sur la base ; signature des QR côté serveur (étape D) ; limitation du nombre d'essais de « Mes billets ».
 
+### Étape 7C : comptes de l'équipe (commitée en local le 23/11/2026, à pousser après la fusion de la PR #13)
+
+Découpage validé le 23/11/2026 : comptes actifs **en production aussi** (le fondateur ne peut pas ouvrir la Preview, protégée par Vercel) ; comptes créés par l'administrateur avec un mot de passe provisoire (Supabase n'envoie pas d'e-mails sans service d'envoi, que l'on n'ouvre pas).
+
+- **Aiguillage** (`services/mode-gestion.ts`, fixé au build) : `NEXT_PUBLIC_LOGIMAR_GESTION = "comptes"` si `POSTGRES_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` et `SUPABASE_SECRET_KEY` existent (vérifié le 23/11/2026 : ces noms sont sur Vercel), sinon `"code"` (code `241241`, poste local).
+- **Bibliothèques** : `@supabase/supabase-js` 2.119.0 et `@supabase/ssr` 0.12.7 (MIT), ajoutées avec l'accord de l'utilisateur.
+- **Rôles** (`domain/roles.ts`, testé) : Administrateur (tout, dont les comptes), Direction (lecture seule), Revenue manager (paliers), Agent d'embarquement (`/scan` seulement). Mot de passe : 10 caractères au moins, lettres et chiffres.
+- **Migration 0003** : `profils` (id = identifiant Supabase Auth, e-mail, nom, rôle, actif, mot de passe provisoire à changer) et `journal_audit` ; RLS sans règle, aucun droit public. **À appliquer** depuis `/preview/base`, avec l'accord de l'utilisateur.
+- **Serveur** : `ServiceComptesGestion` (`services/serveur/comptes-gestion.ts`, testé sur PGlite avec un faux Supabase Auth) ; `supabase.ts` (session par cookies avec la clé publiable, création de comptes avec la clé secrète, jamais envoyée au navigateur) ; `session-gestion.ts` ; actions `actions-gestion.ts` (chacune relit la personne connectée et son droit).
+- **`proxy.ts`** (Next.js 16) : `/admin` et `/scan` exigent une session valide, un profil actif, un mot de passe définitif et le droit du rôle ; sinon `/gestion/connexion`, `/gestion/mot-de-passe` ou la page d'accueil du rôle.
+- **Écrans** : `/gestion/connexion`, `/gestion/mot-de-passe` ; `/admin/utilisateurs` (administrateur : créer un compte avec mot de passe provisoire affiché une fois, changer le rôle, désactiver ou réactiver, nouveau mot de passe provisoire, journal) ; menu avec le nom et le rôle de la personne et les seuls liens de son rôle ; boutons Fermer / Ouvrir des paliers masqués sans le droit ; lien « Gestion » masqué pour l'agent d'embarquement. Garde « code » inchangée en local.
+- **Premier administrateur** : formulaire sur `/preview/base`, tant qu'aucun administrateur n'existe ; l'utilisateur y saisit lui-même son e-mail et son mot de passe.
+- Tests : 199 (dont `domain/roles.test.ts`, `services/serveur/comptes-gestion.test.ts`), lint et build OK ; aucun secret ni code d'administration dans le code envoyé au navigateur. Vérifié en local en mode « code » (pas de régression). **Non vérifié** : le mode « comptes » (variables absentes du poste) : à faire sur la Preview.
+- **Ordre de mise en service** : fusion de la PR #13 → push de 7C → Preview → accord pour la migration 0003 et pour couper les inscriptions publiques dans Supabase (Authentication > Sign In / Providers > « Allow new users to sign up ») → l'utilisateur crée son compte administrateur sur `/preview/base` → essais sur la Preview → création du compte du fondateur → fusion. Ne pas fusionner avant qu'un administrateur existe : la production exigerait un compte pour `/admin`.
+- **Reporté à D** : journal d'audit des paliers avec leur auteur, nom de l'agent dans les scans, double authentification de l'administrateur.
+
 ## Méthode de travail (validée)
 
 - Une PR par étape depuis `demo-v1` ; l'utilisateur relit la Preview et fusionne par *merge commit*. **Ne jamais pousser l'étape suivante tant que la PR précédente est ouverte** (les commits s'ajouteraient à cette PR) : commiter en local et surveiller `git ls-remote origin main`.
@@ -138,7 +154,7 @@ Décision du 23/11/2026 : **active sur la Preview seulement**. La production gar
 
 - **7B** : fusionnée (PR #12).
 - **Montée de version de Next.js** (16.1.6 → 16.4.6) : PR ouverte le 23/11/2026.
-- **7C — Comptes de gestion** : prochaine ; découpage à proposer puis à valider.
+- **7C — Comptes de gestion** : découpage validé, commitée en local ; à pousser après la fusion de la PR #13 (voir « Étape 7C » pour l'ordre de mise en service).
 - Puis **C** (vrais comptes de gestion, création du compte du fondateur ; le plan permet de la faire passer avant B), **D** (back-office et embarquement partagés entre appareils), **E** (tâche quotidienne, qui garde aussi la base active).
 - **6 — Recette** : tablette et ordinateur, accessibilité, console, scénario de présentation dans le README.
 - Proposé, pas encore demandé (« pas maintenant ») : un guide pour que le fondateur teste le tableau de bord et le scan.
